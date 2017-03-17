@@ -1,21 +1,17 @@
 #include <iostream>
 
+#include <gtest/gtest.h>
 #include <Windows.h>
 
 #include "HeapManager.h"
 
-int main( int argc, char* argv[] )
+TEST( HeapManagerTest, AllocFree )
 {
-    CHeapManager heapManager( 100, 10'000'000 );
-    char* str = (char*)heapManager.Alloc( 400'000 );
-    std::strcpy(str, "allocator");
-    std::cout << str << std::endl;
+    std::cout << "All right" << std::endl;
+}
 
-    char* str2 = (char*)heapManager.Alloc( 10'000 );
-    std::strcpy( str2, "str2" );
-    std::cout << str2 << std::endl;
-
-    heapManager.Free( str );
-    heapManager.Free( str2 );
-    return 0;
+int main( int argc, char** argv )
+{
+    testing::InitGoogleTest( &argc, argv );
+    return RUN_ALL_TESTS();
 }
