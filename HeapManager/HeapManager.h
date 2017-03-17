@@ -25,14 +25,15 @@ public:
     void* Alloc( int size );
     void Free( void* mem );
 
+    int Size() const noexcept;
+
 private:
     int maxHeapSize;
     int initHeapSize;
 
     BYTE* heapBegin;
-    int numReservedPages;
-
-    //int numCommittedPages; // TODO
+    int numReservedPages;   
+    int numCommittedPages; // TODO
 
     std::vector<int> numAllocationsPerPage; 
 
@@ -40,10 +41,15 @@ private:
     std::map<BYTE*, int> mediumFreeBlocks;
     std::map<BYTE*, int> bigFreeBlocks;
 
-    int smallBlocksSizeLimit;
-    int mediumBlocksSizeLimit;
+    static const struct CSystemInfo : SYSTEM_INFO {
+        CSystemInfo()
+        {
+            GetSystemInfo( this );
+        }
+    } systemInfo;
 
-    SYSTEM_INFO systemInfo;
+    static const int smallBlocksSizeLimit;
+    static const int mediumBlocksSizeLimit;
 
     static const int minBlockSize = sizeof( int );
 

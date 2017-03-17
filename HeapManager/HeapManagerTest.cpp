@@ -9,8 +9,11 @@ const int NumAllocs = 50;
 TEST(HeapManagerTest, AllocFree)
 {
     CHeapManager heapManager( HeapInitSize, HeapMaxSize );
+
     for( int i = 0; i < NumAllocs; ++i ) {
         void* p = heapManager.Alloc( std::rand() % HeapMaxSize );
         heapManager.Free( p );
     }
+
+    EXPECT_EQ( heapManager.Size(), 4096 ); // TODO
 }
