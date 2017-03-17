@@ -1,8 +1,6 @@
 #pragma once
 
-#include <string>
 #include <vector>
-#include <set>
 #include <map>
 
 #include <Windows.h>
@@ -25,7 +23,7 @@ public:
     void Destroy();
 
     void* Alloc( int size );
-    void Free( void* mem);
+    void Free( void* mem );
 
 private:
     int maxHeapSize;
@@ -34,24 +32,30 @@ private:
     BYTE* heapBegin;
     int numReservedPages;
 
-    std::vector<int> numBlocksPerPage; 
+    //int numCommittedPages; // TODO
 
-    std::set<BYTE*> smallFreeBlocks;
+    std::vector<int> numAllocationsPerPage; 
+
+    std::map<BYTE*, int> smallFreeBlocks;
     std::map<BYTE*, int> mediumFreeBlocks;
     std::map<BYTE*, int> bigFreeBlocks;
 
-    const int minBlockSize = sizeof( int );
     int smallBlocksSizeLimit;
     int mediumBlocksSizeLimit;
 
     SYSTEM_INFO systemInfo;
 
-    int granularRound( int granulaSize, int value );
+    static const int minBlockSize = sizeof( int );
 
-    int getPageIndex( BYTE* address );
-    BYTE* getPageAddress( int pageIndex );
+    static int granularRound( int granulaSize, int value ) noexcept;
 
-    BYTE* searchFreeBlock( int size );
-    void logFreeBlock( BYTE* address, int size );
-    void retrieveFreeBlock( BYTE* address, int size );
+    int pageIndex( BYTE* address ) const noexcept;
+    BYTE* pageAddress( int pageIndex ) const noexcept;
+
+    BYTE* reserveMemory( int size );
+    BYTE* reserveMemory( std::map<BYTE*, int>& memorySet, int size );
+    
+    void releaseMemory( BYTE* memory, int size );
+    bool tryAttach( std::map<BYTE*, int>& memorySet, BYTE* memory, int size );
+    void markMemoryFree( BYTE* memory, int size );
 };

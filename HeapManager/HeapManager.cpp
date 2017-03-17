@@ -1,0 +1,223 @@
+#pragma once
+
+#include <exception>
+#include <locale>
+#include <codecvt>
+
+#include "HeapManager.h"
+
+std::string GetErrorMessage( DWORD errorCode )
+{
+    wchar_t errorMessage[256];
+    FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, nullptr, errorCode,
+        MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), errorMessage, 255, nullptr );
+
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+    return converter.to_bytes( errorMessage );
+}
+
+CHeapManager::CHeapManager( int initSize, int maxSize ) 
+{
+    Create( initSize, maxSize );
+}
+
+CHeapManager::~CHeapManager()
+{
+    if( heapBegin != nullptr ) {
+        Destroy();
+    }
+}
+
+void CHeapManager::Create( int initSize, int maxSize )
+{
+    if( maxSize < initSize ) {
+        throw std::invalid_argument( "Initial size cannot be bigger than maximum size of the heap" );
+    }
+
+    GetSystemInfo( &systemInfo );
+
+    smallBlocksSizeLimit = systemInfo.dwPageSize;
+    mediumBlocksSizeLimit =  32 * systemInfo.dwPageSize;
+    
+    maxHeapSize = granularRound( systemInfo.dwAllocationGranularity, maxSize );
+    numReservedPages = maxHeapSize / systemInfo.dwPageSize;
+    numAllocationsPerPage.resize( numReservedPages, 0 );
+
+    heapBegin = static_cast<BYTE*>( VirtualAlloc( nullptr, maxHeapSize, MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE ) );
+    if( maxHeapSize != 0 && heapBegin == nullptr ) {
+        throw std::runtime_error( GetErrorMessage( GetLastError() ) );
+    }
+
+    initHeapSize = granularRound( systemInfo.dwPageSize, initSize );
+    if( VirtualAlloc( heapBegin, initHeapSize, MEM_COMMIT, PAGE_READWRITE ) != heapBegin ) {
+        throw std::runtime_error( GetErrorMessage( GetLastError() ) );
+    }
+
+    releaseMemory( heapBegin, maxHeapSize );
+}
+
+void CHeapManager::Destroy()
+{
+#ifdef DEBUG
+    // TODO print out allocated areas
+#endif
+    
+    if( VirtualFree( heapBegin, 0, MEM_RELEASE ) == 0 ) {
+        throw std::runtime_error( GetErrorMessage( GetLastError() ) );
+    }
+
+    heapBegin = nullptr;
+}
+
+void* CHeapManager::Alloc( int size )
+{
+    int allocationSize = granularRound( minBlockSize, size + sizeof( int ) );
+
+    BYTE* memory = reserveMemory( allocationSize );
+    if( memory == nullptr ) {
+        throw std::bad_alloc(); // TODO redo mb
+    }
+
+    int firstPageContainsAlloc = pageIndex( memory );
+    int lastPageContainsAlloc = pageIndex( memory + allocationSize ); 
+    int i = firstPageContainsAlloc;
+    do {
+        if( numAllocationsPerPage[i] == 0 && i >= initHeapSize / systemInfo.dwPageSize ) {
+            VirtualAlloc( pageAddress(i), systemInfo.dwPageSize, MEM_COMMIT, PAGE_READWRITE );
+        }
+        ++numAllocationsPerPage[i];
+        ++i;
+    } while( i <= lastPageContainsAlloc );
+    *reinterpret_cast<int*>(memory) = size;
+
+    return memory + sizeof( int );
+}
+
+void CHeapManager::Free( void* mem )
+{
+    BYTE* allocatedMemory = static_cast<BYTE*>( mem ) - sizeof( int );
+    int allocatedSize = *reinterpret_cast<int*>( allocatedMemory );
+
+    int firstPageContainsAlloc = pageIndex( allocatedMemory );
+    int lastPageContainsAlloc = pageIndex( allocatedMemory + allocatedSize );
+    int i = firstPageContainsAlloc;
+    do {
+        --numAllocationsPerPage[i];
+        if( numAllocationsPerPage[i] < 0 ) {
+            throw std::logic_error( "Too few allocs per page" );
+        }
+        if( numAllocationsPerPage[i] == 0 && i >= initHeapSize / systemInfo.dwPageSize ) {
+            VirtualFree( pageAddress( i ), systemInfo.dwPageSize, MEM_DECOMMIT );
+        }
+        ++i;
+    } while( i <= lastPageContainsAlloc );
+
+    releaseMemory( allocatedMemory, allocatedSize );
+}
+
+inline int CHeapManager::granularRound( int granulaSize, int value ) noexcept
+{
+    int residue = value % granulaSize;
+    return residue > 0 ? value - residue + granulaSize : value;
+}
+
+BYTE* CHeapManager::reserveMemory( int size )
+{
+    BYTE* memory = nullptr;
+
+    if( size < smallBlocksSizeLimit ) {
+        memory = reserveMemory( smallFreeBlocks, size );
+    }
+    if( memory == nullptr && size < mediumBlocksSizeLimit ) {
+        memory = reserveMemory( mediumFreeBlocks, size );
+    }
+    if( memory == nullptr ) {
+        memory = reserveMemory( bigFreeBlocks, size );
+    }
+
+    return memory;
+}
+
+BYTE* CHeapManager::reserveMemory( std::map<BYTE*, int>& memorySet, int size ) 
+{
+    BYTE* memory = nullptr;
+    int memorySize = 0;
+    
+    for( auto it = std::cbegin( memorySet ); it != std::cend( memorySet ); ++it ) {
+        if( it->second >= size ) {
+            memory = it->first;
+            memorySize = it->second;
+
+            memorySet.erase( it );
+
+            if( size < memorySize ) {
+                markMemoryFree( memory + size + 1, memorySize - size );
+            }
+            break;
+        }
+    }
+
+    return memory;
+}
+
+inline int CHeapManager::pageIndex( BYTE* address ) const noexcept
+{
+    return std::distance( heapBegin, address ) / systemInfo.dwPageSize; 
+}
+
+inline BYTE* CHeapManager::pageAddress( int pageIndex ) const noexcept
+{
+    return heapBegin + pageIndex * systemInfo.dwPageSize;
+}
+
+void CHeapManager::releaseMemory( BYTE* memory, int size )
+{
+    if( !tryAttach( smallFreeBlocks, memory, size )
+        && !tryAttach( mediumFreeBlocks, memory, size )
+        && !tryAttach( bigFreeBlocks, memory, size ) ) 
+    {
+        markMemoryFree( memory, size );
+    }
+}
+
+bool CHeapManager::tryAttach( std::map<BYTE*, int>& memorySet, BYTE* memory, int size )
+{
+    BYTE* attachedMemory = nullptr;
+    int attachedMemorySize = 0;
+    bool isSuccessful = false;
+
+    auto it = memorySet.upper_bound( memory );
+    if( it != std::end( memorySet ) ) {
+        attachedMemory = it->first;
+        attachedMemorySize = it->second;
+        if( memory + size + 1 == attachedMemory ) {
+            memorySet.erase( it );
+            markMemoryFree( memory, size + attachedMemorySize );
+            isSuccessful = true;
+        }
+    }
+
+    it = memorySet.lower_bound( memory );
+    if( it != std::end( memorySet ) ) {
+        attachedMemory = it->first;
+        attachedMemorySize = it->second;
+        if( attachedMemory + attachedMemorySize + 1 == memory ) {
+            memorySet.erase( it );
+            markMemoryFree( attachedMemory, size + attachedMemorySize );
+            isSuccessful = true;
+        }
+    }
+
+    return isSuccessful;
+}
+
+void CHeapManager::markMemoryFree( BYTE* memory, int size )
+{
+    if( size < smallBlocksSizeLimit ) {
+        smallFreeBlocks.emplace( memory, size );
+    } else if( size < mediumBlocksSizeLimit ) {
+        mediumFreeBlocks.emplace( memory, size );
+    } else {
+        bigFreeBlocks.emplace( memory, size );
+    }
+}
