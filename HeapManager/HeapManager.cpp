@@ -1,20 +1,9 @@
 #pragma once
 
 #include <exception>
-#include <locale>
-#include <codecvt>
 
 #include "HeapManager.h"
-
-std::string GetErrorMessage( DWORD errorCode )
-{
-    wchar_t errorMessage[256];
-    FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, nullptr, errorCode,
-        MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), errorMessage, 255, nullptr );
-
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-    return converter.to_bytes( errorMessage );
-}
+#include "Utils.h"
 
 const CHeapManager::CSystemInfo CHeapManager::systemInfo;
 const int CHeapManager::smallBlocksSizeLimit = systemInfo.dwPageSize;
@@ -77,7 +66,7 @@ void* CHeapManager::Alloc( int size )
 
     BYTE* memory = reserveMemory( allocationSize );
     if( memory == nullptr ) {
-        throw std::bad_alloc(); // TODO redo mb
+        throw std::bad_alloc();
     }
 
     int firstPageContainsAlloc = pageIndex( memory );
@@ -91,7 +80,7 @@ void* CHeapManager::Alloc( int size )
         ++numAllocationsPerPage[i];
         ++i;
     } while( i <= lastPageContainsAlloc );
-    *reinterpret_cast<int*>( memory ) = size;
+    *reinterpret_cast<int*>( memory ) = allocationSize;
 
     return memory + sizeof( int );
 }
@@ -152,7 +141,7 @@ BYTE* CHeapManager::reserveMemory( std::map<BYTE*, int>& memorySet, int size )
     BYTE* memory = nullptr;
     int memorySize = 0;
     
-    for( auto it = std::cbegin( memorySet ); it != std::cend( memorySet ); ++it ) {
+    for( auto it = std::begin( memorySet ); it != std::end( memorySet ); ++it ) {
         if( it->second >= size ) {
             memory = it->first;
             memorySize = it->second;
@@ -181,28 +170,28 @@ inline BYTE* CHeapManager::pageAddress( int pageIndex ) const noexcept
 
 void CHeapManager::releaseMemory( BYTE* memory, int size )
 {
-    if( !tryAttach( smallFreeBlocks, memory, size )
-        && !tryAttach( mediumFreeBlocks, memory, size )
-        && !tryAttach( bigFreeBlocks, memory, size ) ) 
-    {
-        markMemoryFree( memory, size );
-    }
+    std::tie( memory, size ) = uniteMemory( smallFreeBlocks, memory, size );
+    std::tie( memory, size ) = uniteMemory( mediumFreeBlocks, memory, size );
+    std::tie( memory, size ) = uniteMemory( bigFreeBlocks, memory, size );
+    
+    markMemoryFree( memory, size );
 }
 
-bool CHeapManager::tryAttach( std::map<BYTE*, int>& memorySet, BYTE* memory, int size )
+std::pair<BYTE*, int> CHeapManager::uniteMemory( std::map<BYTE*, int>& memorySet, BYTE* memory, int size )
 {
     BYTE* attachedMemory = nullptr;
     int attachedMemorySize = 0;
-    bool isAttached = false;
 
     auto it = memorySet.upper_bound( memory );
     if( it != std::end( memorySet ) ) {
         attachedMemory = it->first;
         attachedMemorySize = it->second;
+        if( memory == attachedMemory ) {
+            throw std::logic_error( "Same memory" );
+        }
         if( memory + size + 1 == attachedMemory ) {
             memorySet.erase( it );
-            markMemoryFree( memory, size + attachedMemorySize );
-            isAttached = true;
+            size += attachedMemorySize; // TODO
         }
     }
 
@@ -210,14 +199,16 @@ bool CHeapManager::tryAttach( std::map<BYTE*, int>& memorySet, BYTE* memory, int
     if( it != std::end( memorySet ) ) {
         attachedMemory = it->first;
         attachedMemorySize = it->second;
+        if( memory == attachedMemory ) {
+            throw std::logic_error( "Same memory" );
+        }
         if( attachedMemory + attachedMemorySize + 1 == memory ) {
-            memorySet.erase( it );
-            markMemoryFree( attachedMemory, attachedMemorySize + size );
-            isAttached = true;
+            memory = attachedMemory;
+            size += attachedMemorySize;
         }
     }
 
-    return isAttached;
+    return { memory, size };
 }
 
 void CHeapManager::markMemoryFree( BYTE* memory, int size )

@@ -1,19 +1,47 @@
 #include <gtest/gtest.h>
+#include <Windows.h>
 
 #include "HeapManager.h"
 
-const int HeapInitSize = 1'000;
-const int HeapMaxSize = 1'000'000;
-const int NumAllocs = 50;
+class HeapManagerTest : public testing::Test {
+protected:
+    HeapManagerTest() : customHeap(), defaultHeap( nullptr )
+    {
+        GetSystemInfo( &systemInfo );
+    }
 
-TEST(HeapManagerTest, AllocFree)
+    void SetUp() override
+    {
+        customHeap.Create( heapInitSize, heapMaxSize );
+        defaultHeap = HeapCreate( HEAP_NO_SERIALIZE, heapInitSize, heapMaxSize );
+    }
+   
+    void TearDown() override
+    {
+        HeapDestroy( defaultHeap );
+        customHeap.Destroy();
+    }
+    
+    CHeapManager customHeap;
+    HANDLE defaultHeap;
+
+    SYSTEM_INFO systemInfo;
+
+    static const int heapInitSize = 1'000;
+    static const int heapMaxSize = 1'000'000;
+};
+
+TEST_F( HeapManagerTest, AllocFree )
 {
-    CHeapManager heapManager( HeapInitSize, HeapMaxSize );
+    const int numAllocs = 5'000;
 
-    for( int i = 0; i < NumAllocs; ++i ) {
-        void* p = heapManager.Alloc( std::rand() % HeapMaxSize );
+    CHeapManager heapManager( heapInitSize, heapMaxSize );
+
+    for( int i = 0; i < numAllocs; ++i ) {
+        void* p = heapManager.Alloc( std::rand() % heapMaxSize );
         heapManager.Free( p );
     }
 
-    EXPECT_EQ( heapManager.Size(), 4096 ); // TODO
+    EXPECT_EQ( heapManager.Size(), systemInfo.dwPageSize );
 }
+
