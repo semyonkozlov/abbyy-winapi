@@ -6,6 +6,9 @@
 #include <Windows.h>
 
 class CHeapManager {
+    using MemorySet = std::map<BYTE*, int>; // TODO
+    using MemoryBlock = std::pair<BYTE*, int>;
+
 public:
     CHeapManager() = default;
     CHeapManager( int initSize, int maxSize );
@@ -23,7 +26,8 @@ public:
     void* Alloc( int size );
     void Free( void* mem );
 
-    int Size() const noexcept;
+    int Size( void* mem ) const;
+    int CommittedMemorySize() const noexcept;
 
 private:
     static const struct CSystemInfo : SYSTEM_INFO {

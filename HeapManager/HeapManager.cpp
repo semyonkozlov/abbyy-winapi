@@ -106,14 +106,20 @@ void CHeapManager::Free( void* mem )
     } while( i <= lastPageContainsAlloc );
 
     releaseMemory( allocatedMemory, allocatedSize );
+    //markMemoryFree( allocatedMemory, allocatedSize );
 }
 
-int CHeapManager::Size() const noexcept
+int CHeapManager::Size( void* mem ) const
+{
+    return *(reinterpret_cast<int*>( mem ) - 1);
+}
+
+int CHeapManager::CommittedMemorySize() const noexcept
 {
     return numCommittedPages * systemInfo.dwPageSize;
 }
 
-inline int CHeapManager::granularRound( int granulaSize, int value ) noexcept
+int CHeapManager::granularRound( int granulaSize, int value ) noexcept
 {
     int residue = value % granulaSize;
     return residue > 0 ? value - residue + granulaSize : value;
@@ -141,7 +147,7 @@ BYTE* CHeapManager::reserveMemory( std::map<BYTE*, int>& memorySet, int size )
     BYTE* memory = nullptr;
     int memorySize = 0;
     
-    for( auto it = std::begin( memorySet ); it != std::end( memorySet ); ++it ) {
+    for( auto it = std::cbegin( memorySet ); it != std::cend( memorySet ); ++it ) {
         if( it->second >= size ) {
             memory = it->first;
             memorySize = it->second;
@@ -186,12 +192,12 @@ std::pair<BYTE*, int> CHeapManager::uniteMemory( std::map<BYTE*, int>& memorySet
     if( it != std::end( memorySet ) ) {
         attachedMemory = it->first;
         attachedMemorySize = it->second;
-        if( memory == attachedMemory ) {
+        if( memory == attachedMemory ) { // TODO mb extra
             throw std::logic_error( "Same memory" );
         }
         if( memory + size + 1 == attachedMemory ) {
             memorySet.erase( it );
-            size += attachedMemorySize; // TODO
+            size += attachedMemorySize; 
         }
     }
 

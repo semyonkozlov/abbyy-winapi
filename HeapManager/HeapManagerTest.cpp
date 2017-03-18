@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include <gtest/gtest.h>
 #include <Windows.h>
 
@@ -5,7 +7,10 @@
 
 class HeapManagerTest : public testing::Test {
 protected:
-    HeapManagerTest() : customHeap(), defaultHeap( nullptr )
+    class CClassWithCustomHeap;
+    class CClassWithDefaultHeap;
+
+    HeapManagerTest() 
     {
         GetSystemInfo( &systemInfo );
     }
@@ -21,27 +26,79 @@ protected:
         HeapDestroy( defaultHeap );
         customHeap.Destroy();
     }
-    
-    CHeapManager customHeap;
-    HANDLE defaultHeap;
+
+    static CHeapManager customHeap;
+    static HANDLE defaultHeap;
+
+    static const int heapInitSize = 4'000;
+    static const int heapMaxSize = 1'000'000'000;
+    static const int allocatedClassSize = 3;
 
     SYSTEM_INFO systemInfo;
-
-    static const int heapInitSize = 1'000;
-    static const int heapMaxSize = 1'000'000;
 };
+
+CHeapManager HeapManagerTest::customHeap;
+HANDLE HeapManagerTest::defaultHeap = nullptr;
+
+class HeapManagerTest::CClassWithDefaultHeap {
+public:
+    void* operator new( std::size_t size )
+    {
+        return HeapAlloc( defaultHeap, 0, size );
+    }
+
+    void operator delete( void* mem )
+    {
+        HeapFree( defaultHeap, 0, mem );
+    }
+
+private:
+    BYTE arr[allocatedClassSize];
+}; 
+
+class HeapManagerTest::CClassWithCustomHeap {
+public:
+    void* operator new( std::size_t size )
+    {
+        return customHeap.Alloc( size );
+    }
+
+    void operator delete( void* mem )
+    {
+        customHeap.Free( mem );
+    }
+
+private:
+    BYTE arr[allocatedClassSize];
+};
+
+
+template<typename T>
+auto AllocFreeTime( int numSeries, int numPushBacksInSerie ) 
+{
+    auto start = std::chrono::steady_clock::now();
+
+    std::vector<T> vector;
+    for( int i = 0; i < numSeries; ++i ) {
+        for( int j = 0; j < numPushBacksInSerie; ++j ) {
+            vector.emplace_back();
+        }
+        vector.shrink_to_fit();
+    }
+
+    auto end = std::chrono::steady_clock::now();
+    return end - start;
+}
 
 TEST_F( HeapManagerTest, AllocFree )
 {
-    const int numAllocs = 5'000;
+    const int numSeries = 1'000;
+    const int numPushBacksInSerie = 10'000;
+    auto defaultHeapTime = AllocFreeTime<CClassWithDefaultHeap>( numSeries, numPushBacksInSerie );
+    auto customHeapTime = AllocFreeTime<CClassWithCustomHeap>( numSeries, numPushBacksInSerie );
 
-    CHeapManager heapManager( heapInitSize, heapMaxSize );
+    std::cout << defaultHeapTime.count() << ' ' << customHeapTime.count() << std::endl;
 
-    for( int i = 0; i < numAllocs; ++i ) {
-        void* p = heapManager.Alloc( std::rand() % heapMaxSize );
-        heapManager.Free( p );
-    }
-
-    EXPECT_EQ( heapManager.Size(), systemInfo.dwPageSize );
+    EXPECT_LE( customHeapTime, 10 * defaultHeapTime );
+    EXPECT_EQ( customHeap.CommittedMemorySize(), systemInfo.dwPageSize );
 }
-
