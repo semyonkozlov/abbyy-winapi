@@ -49,7 +49,7 @@ void CHeapManager::Create( int initSize, int maxSize )
 
 void CHeapManager::Destroy()
 {
-#ifdef DEBUG
+#ifdef _DEBUG
     // TODO print out allocated areas
 #endif
     
@@ -106,7 +106,6 @@ void CHeapManager::Free( void* mem )
     } while( i <= lastPageContainsAlloc );
 
     releaseMemory( allocatedMemory, allocatedSize );
-    //markMemoryFree( allocatedMemory, allocatedSize );
 }
 
 int CHeapManager::Size( void* mem ) const

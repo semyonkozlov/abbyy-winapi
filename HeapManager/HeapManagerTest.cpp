@@ -1,4 +1,6 @@
 #include <chrono>
+#include <list>
+#include <random>
 
 #include <gtest/gtest.h>
 #include <Windows.h>
@@ -7,8 +9,14 @@
 
 class HeapManagerTest : public testing::Test {
 protected:
-    class CClassWithCustomHeap;
-    class CClassWithDefaultHeap;
+    template<typename T>
+    class IAllocator;
+
+    template<typename T>
+    class CDefaultHeapAllocator;
+
+    template<typename T>
+    class CCustomHeapAllocator;
 
     HeapManagerTest() 
     {
@@ -32,7 +40,7 @@ protected:
 
     static const int heapInitSize = 4'000;
     static const int heapMaxSize = 1'000'000'000;
-    static const int allocatedClassSize = 3;
+    static const int allocatedClassSize = 8;
 
     SYSTEM_INFO systemInfo;
 };
@@ -40,65 +48,179 @@ protected:
 CHeapManager HeapManagerTest::customHeap;
 HANDLE HeapManagerTest::defaultHeap = nullptr;
 
-class HeapManagerTest::CClassWithDefaultHeap {
+template<typename T>
+class HeapManagerTest::IAllocator {
 public:
-    void* operator new( std::size_t size )
+    using value_type = T;
+    using pointer = T*;
+    using const_pointer = const T*;
+    using reference = T&;
+    using const_reference = const T&;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+
+    IAllocator() noexcept = default;
+    IAllocator( const IAllocator& ) noexcept = default;
+    virtual ~IAllocator() noexcept = default;
+
+    pointer address( reference value ) const
     {
-        return HeapAlloc( defaultHeap, 0, size );
+        return &value;
+    }
+    const_pointer address( const_reference value ) const
+    {
+        return &value;
     }
 
-    void operator delete( void* mem )
+    size_type max_size() const noexcept
     {
-        HeapFree( defaultHeap, 0, mem );
+        return heapMaxSize / sizeof( T );
     }
 
-private:
-    BYTE arr[allocatedClassSize];
-}; 
-
-class HeapManagerTest::CClassWithCustomHeap {
-public:
-    void* operator new( std::size_t size )
+    void construct( pointer p, const_reference value )
     {
-        return customHeap.Alloc( size );
+        new (reinterpret_cast<void*>( p )) T( value );
     }
 
-    void operator delete( void* mem )
+    void destroy( pointer p )
     {
-        customHeap.Free( mem );
+        p->~T();
     }
 
-private:
-    BYTE arr[allocatedClassSize];
+    virtual pointer allocate( size_type num, const void* = nullptr ) = 0;
+    virtual void deallocate( pointer p, size_type num ) = 0;
 };
 
+template<typename T>
+class HeapManagerTest::CDefaultHeapAllocator : public IAllocator<T> {
+public:
+    using IAllocator<T>::value_type;
+    using IAllocator<T>::pointer;
+
+    CDefaultHeapAllocator() noexcept = default;
+
+    template<typename U>
+    struct rebind {
+        using other = CDefaultHeapAllocator<U>;
+    };
+
+    template<typename U>
+    explicit CDefaultHeapAllocator( const CDefaultHeapAllocator<U>& ) noexcept
+    {
+    }
+
+    pointer allocate( size_type num, const void* = nullptr ) override
+    {
+        std::cout << num << std::endl;
+        return static_cast<pointer>( HeapAlloc( defaultHeap, 0, num * sizeof( T ) ) );
+    }
+
+    void deallocate( pointer p, size_type num ) override
+    {
+        HeapFree( defaultHeap, 0, reinterpret_cast<void*>( p ) );
+    }
+};
 
 template<typename T>
-auto AllocFreeTime( int numSeries, int numPushBacksInSerie ) 
+class HeapManagerTest::CCustomHeapAllocator : public IAllocator<T> {
+public:
+    using IAllocator<T>::value_type;
+    using IAllocator<T>::pointer;
+
+    CCustomHeapAllocator() noexcept = default;
+
+    template<typename U>
+    struct rebind {
+        using other = CCustomHeapAllocator<U>;
+    };
+
+    template<typename U>
+    explicit CCustomHeapAllocator( const CCustomHeapAllocator<U>& ) noexcept
+    {
+    }
+
+    pointer allocate( size_type num, const void* = nullptr ) override
+    {
+        return static_cast<pointer>( customHeap.Alloc( num * sizeof( T ) ) );
+    }
+
+    void deallocate( pointer p, size_type num ) override 
+    {
+        customHeap.Free( p );
+    }
+};
+
+template<template<typename> class Allocator, typename T1, typename T2>
+bool operator==( const Allocator<T1>&, const Allocator<T2>& ) noexcept
+{
+    return true;
+}
+
+template<template<typename> class Allocator, typename T1, typename T2>
+bool operator!=( const Allocator<T1>&, const Allocator<T2>& ) noexcept
+{
+    return false;
+}
+
+
+template<typename T, template<typename> class Allocator>
+auto TestTime( int numSeries, int numEmplacesInSerie ) 
 {
     auto start = std::chrono::steady_clock::now();
 
-    std::vector<T> vector;
+    // various memory usage cases
+    std::vector<T, Allocator<T>> vector; 
+    std::list<T, Allocator<T>> list;
     for( int i = 0; i < numSeries; ++i ) {
-        for( int j = 0; j < numPushBacksInSerie; ++j ) {
+        for( int j = 0; j < numEmplacesInSerie; ++j ) {
             vector.emplace_back();
+            //list.emplace_back();
         }
-        vector.shrink_to_fit();
+ 
+        for( int j = 0; j < numEmplacesInSerie / 3; ++j ) {
+            vector.pop_back();
+            list.erase( std::begin( list ) );
+        }
     }
 
     auto end = std::chrono::steady_clock::now();
     return end - start;
 }
 
-TEST_F( HeapManagerTest, AllocFree )
+TEST_F( HeapManagerTest, MemoryManagementTime )
 {
-    const int numSeries = 1'000;
-    const int numPushBacksInSerie = 10'000;
-    auto defaultHeapTime = AllocFreeTime<CClassWithDefaultHeap>( numSeries, numPushBacksInSerie );
-    auto customHeapTime = AllocFreeTime<CClassWithCustomHeap>( numSeries, numPushBacksInSerie );
+    const int numSeries = 10;
+    const int numEmplacesInSerie = 10;
 
-    std::cout << defaultHeapTime.count() << ' ' << customHeapTime.count() << std::endl;
+    auto defaultHeapTime = TestTime<BYTE, CDefaultHeapAllocator>( numSeries, numEmplacesInSerie );
+    // auto customHeapTime = TestTime<int, CCustomHeapAllocator>( numSeries, numEmplacesInSerie );
 
-    EXPECT_LE( customHeapTime, 10 * defaultHeapTime );
+#ifdef _DEBUG
+    //std::cout << customHeapTime.count() << ' ' << defaultHeapTime.count() << std::endl;
+#endif 
+
+    //EXPECT_LE( customHeapTime, 10 * defaultHeapTime );
     EXPECT_EQ( customHeap.CommittedMemorySize(), systemInfo.dwPageSize );
+}
+
+TEST_F( HeapManagerTest, DISABLED_MemoryUsage )
+{
+    const int numEmplaces = 1'000;
+
+    std::vector<int, CCustomHeapAllocator<int>> vector;
+    for( int i = 0; i < numEmplaces; ++i ) {
+        EXPECT_LE( customHeap.CommittedMemorySize(), 
+            vector.capacity() * sizeof( int ) + systemInfo.dwPageSize );
+        vector.emplace_back();
+        std::cout << customHeap.CommittedMemorySize() << std::endl;
+    }
+
+    std::vector<int, CCustomHeapAllocator<int>>().swap( vector ); // clear vector buffer
+    EXPECT_NEAR( customHeap.CommittedMemorySize(), heapInitSize, systemInfo.dwPageSize );
+}
+
+TEST_F( HeapManagerTest, DISABLED_Overflow )
+{
+    EXPECT_THROW( (std::vector<BYTE, CCustomHeapAllocator<BYTE>>( heapMaxSize + 2 * systemInfo.dwAllocationGranularity )), 
+        std::bad_alloc );
 }
