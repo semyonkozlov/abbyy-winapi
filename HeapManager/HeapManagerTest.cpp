@@ -8,7 +8,7 @@
 
 class HeapManagerTest : public testing::Test {
 protected:
-    HeapManagerTest() 
+    HeapManagerTest() : defaultHeap( nullptr )
     {
         GetSystemInfo( &systemInfo );
     }
@@ -92,17 +92,29 @@ TEST_F( HeapManagerTest, MemoryManagementTime )
 
 #ifdef _DEBUG
     std::cout << double( customHeapTime.count() ) / double( defaultHeapTime.count() ) << std::endl;
-#endif 
+#endif
 
     EXPECT_LE( customHeapTime, 10 * defaultHeapTime );
+
+    customHeap.Optimize();
+    EXPECT_NEAR( customHeap.CommittedMemorySize(), heapInitSize, systemInfo.dwPageSize );
 }
 
-TEST_F( HeapManagerTest, DISABLED_MemoryUsage )
+TEST_F( HeapManagerTest, MemoryUsage )
 {
+    const int numAllocs = 10'000;
+    const int blockSize = 1000;
 
+    for( int i = 0; i < numAllocs; ++i ) {
+        void* p = customHeap.Alloc( i * blockSize );
+        customHeap.Free( p );
+    }
+
+    //customHeap.Optimize(); // actually should invoke this before checking size
+    EXPECT_NEAR( customHeap.CommittedMemorySize(), heapInitSize, systemInfo.dwPageSize );
 }
 
-TEST_F( HeapManagerTest, DISABLED_Overflow )
+TEST_F( HeapManagerTest, Overflow )
 {
-  
+    EXPECT_THROW( customHeap.Alloc( heapMaxSize + systemInfo.dwAllocationGranularity + 1 ), std::bad_alloc );
 }

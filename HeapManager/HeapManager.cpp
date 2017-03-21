@@ -5,7 +5,6 @@
 
 #include "HeapManager.h"
 #include "Utils.h"
-#include <iostream>
 
 const CHeapManager::CSystemInfo CHeapManager::systemInfo;
 const int CHeapManager::smallBlocksSizeLimit = systemInfo.dwPageSize;
@@ -34,11 +33,10 @@ void CHeapManager::Create( int initSize, int maxSize )
 
     numReservedPages = maxHeapSize / systemInfo.dwPageSize;
     numCommittedPages = initHeapSize / systemInfo.dwPageSize;
-    numAllocationsPerPage.resize( numReservedPages, 0 );
     
+    numAllocationsPerPage.resize( numReservedPages, 0 );
     isCommitted.resize( numReservedPages, false );
     collectCounter = 0;
-    numDeallocationsBeforeCollect = max( maxHeapSize / 10'000 , 100 );
 
     heapBegin = static_cast<BYTE*>( VirtualAlloc( nullptr, maxHeapSize, MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE ) );
     if( maxHeapSize != 0 && heapBegin == nullptr ) {
@@ -55,9 +53,6 @@ void CHeapManager::Create( int initSize, int maxSize )
 
 void CHeapManager::Destroy()
 {
-#ifdef _DEBUG
-    // TODO print out allocated areas
-#endif
     if( VirtualFree( heapBegin, 0, MEM_RELEASE ) == 0 ) {
         throw std::runtime_error( GetErrorMessage( GetLastError() ) );
     }
@@ -125,6 +120,11 @@ int CHeapManager::Size( void* mem ) const
 int CHeapManager::CommittedMemorySize() const noexcept
 {
     return numCommittedPages * systemInfo.dwPageSize;
+}
+
+void CHeapManager::Optimize()
+{
+    decommitUnusedMemory();
 }
 
 int CHeapManager::granularRound( int granulaSize, int value ) noexcept

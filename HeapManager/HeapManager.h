@@ -6,9 +6,6 @@
 #include <Windows.h>
 
 class CHeapManager {
-    using MemorySet = std::map<BYTE*, int>; // TODO
-    using MemoryBlock = std::pair<BYTE*, int>;
-
 public:
     CHeapManager() = default;
     CHeapManager( int initSize, int maxSize );
@@ -28,6 +25,8 @@ public:
 
     int Size( void* mem ) const;
     int CommittedMemorySize() const noexcept;
+    
+    void Optimize();
 
 private:
     static const struct CSystemInfo : SYSTEM_INFO {
@@ -41,8 +40,8 @@ private:
     static const int mediumBlocksSizeLimit;
 
     static const int minBlockSize = sizeof( int );
+    static const int numDeallocationsBeforeCollect = 1'000;
 
-    // TODO actually const
     int maxHeapSize;
     int initHeapSize;
 
@@ -52,7 +51,6 @@ private:
 
     std::vector<int> numAllocationsPerPage; 
 
-    int numDeallocationsBeforeCollect;
     int collectCounter;
     std::vector<char> isCommitted;
 
