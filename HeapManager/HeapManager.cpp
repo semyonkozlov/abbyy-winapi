@@ -1,9 +1,11 @@
 #pragma once
 
 #include <exception>
+#include <algorithm>
 
 #include "HeapManager.h"
 #include "Utils.h"
+#include <iostream>
 
 const CHeapManager::CSystemInfo CHeapManager::systemInfo;
 const int CHeapManager::smallBlocksSizeLimit = systemInfo.dwPageSize;
@@ -32,8 +34,11 @@ void CHeapManager::Create( int initSize, int maxSize )
 
     numReservedPages = maxHeapSize / systemInfo.dwPageSize;
     numCommittedPages = initHeapSize / systemInfo.dwPageSize;
-
     numAllocationsPerPage.resize( numReservedPages, 0 );
+    
+    isCommitted.resize( numReservedPages, false );
+    collectCounter = 0;
+    numDeallocationsBeforeCollect = max( maxHeapSize / 10'000 , 100 );
 
     heapBegin = static_cast<BYTE*>( VirtualAlloc( nullptr, maxHeapSize, MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE ) );
     if( maxHeapSize != 0 && heapBegin == nullptr ) {
@@ -43,6 +48,7 @@ void CHeapManager::Create( int initSize, int maxSize )
     if( VirtualAlloc( heapBegin, initHeapSize, MEM_COMMIT, PAGE_READWRITE ) != heapBegin ) {
         throw std::runtime_error( GetErrorMessage( GetLastError() ) );
     }
+    std::fill( std::begin( isCommitted ), std::begin( isCommitted ) + initHeapSize / systemInfo.dwPageSize, true );
 
     markMemoryFree( heapBegin, maxHeapSize );
 }
@@ -52,7 +58,6 @@ void CHeapManager::Destroy()
 #ifdef _DEBUG
     // TODO print out allocated areas
 #endif
-    
     if( VirtualFree( heapBegin, 0, MEM_RELEASE ) == 0 ) {
         throw std::runtime_error( GetErrorMessage( GetLastError() ) );
     }
@@ -73,9 +78,11 @@ void* CHeapManager::Alloc( int size )
     int lastPageContainsAlloc = pageIndex( memory + allocationSize ); 
     int i = firstPageContainsAlloc;
     do {
-        if( numAllocationsPerPage[i] == 0 && i >= initHeapSize / systemInfo.dwPageSize ) {
+        if( !isCommitted[i] && i >= initHeapSize / systemInfo.dwPageSize ) 
+        {
             VirtualAlloc( pageAddress( i ), systemInfo.dwPageSize, MEM_COMMIT, PAGE_READWRITE );
             ++numCommittedPages;
+            isCommitted[i] = true;
         }
         ++numAllocationsPerPage[i];
         ++i;
@@ -98,19 +105,21 @@ void CHeapManager::Free( void* mem )
         if( numAllocationsPerPage[i] < 0 ) {
             throw std::logic_error( "Too few allocs per page" );
         }
-        if( numAllocationsPerPage[i] == 0 && i >= initHeapSize / systemInfo.dwPageSize ) {
-            VirtualFree( pageAddress( i ), systemInfo.dwPageSize, MEM_DECOMMIT );
-            --numCommittedPages;
-        }
         ++i;
     } while( i <= lastPageContainsAlloc );
 
     releaseMemory( allocatedMemory, allocatedSize );
+
+    ++collectCounter;
+    if( collectCounter >= numDeallocationsBeforeCollect ) {
+        decommitUnusedMemory();
+        collectCounter = 0;
+    }
 }
 
 int CHeapManager::Size( void* mem ) const
 {
-    return *(reinterpret_cast<int*>( mem ) - 1);
+    return *(static_cast<int*>( mem ) - 1);
 }
 
 int CHeapManager::CommittedMemorySize() const noexcept
@@ -191,9 +200,7 @@ std::pair<BYTE*, int> CHeapManager::uniteMemory( std::map<BYTE*, int>& memorySet
     if( it != std::end( memorySet ) ) {
         attachedMemory = it->first;
         attachedMemorySize = it->second;
-        if( memory == attachedMemory ) { // TODO mb extra
-            throw std::logic_error( "Same memory" );
-        }
+
         if( memory + size + 1 == attachedMemory ) {
             memorySet.erase( it );
             size += attachedMemorySize; 
@@ -201,13 +208,12 @@ std::pair<BYTE*, int> CHeapManager::uniteMemory( std::map<BYTE*, int>& memorySet
     }
 
     it = memorySet.lower_bound( memory );
-    if( it != std::end( memorySet ) ) {
+    if( it != std::end( memorySet ) && memory != it->first ) {
         attachedMemory = it->first;
         attachedMemorySize = it->second;
-        if( memory == attachedMemory ) {
-            throw std::logic_error( "Same memory" );
-        }
+       
         if( attachedMemory + attachedMemorySize + 1 == memory ) {
+            memorySet.erase( it );
             memory = attachedMemory;
             size += attachedMemorySize;
         }
@@ -224,5 +230,16 @@ void CHeapManager::markMemoryFree( BYTE* memory, int size )
         mediumFreeBlocks.emplace( memory, size );
     } else {
         bigFreeBlocks.emplace( memory, size );
+    }
+}
+
+void CHeapManager::decommitUnusedMemory()
+{
+    for ( int i = initHeapSize / systemInfo.dwPageSize; i < numReservedPages; ++i) {
+        if( numAllocationsPerPage[i] == 0 && isCommitted[i] ) {
+            VirtualFree( pageAddress( i ), systemInfo.dwPageSize, MEM_DECOMMIT );
+            isCommitted[i] = false;
+            --numCommittedPages;
+        }
     }
 }

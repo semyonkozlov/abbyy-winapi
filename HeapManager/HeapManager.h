@@ -52,6 +52,10 @@ private:
 
     std::vector<int> numAllocationsPerPage; 
 
+    int numDeallocationsBeforeCollect;
+    int collectCounter;
+    std::vector<char> isCommitted;
+
     std::map<BYTE*, int> smallFreeBlocks;
     std::map<BYTE*, int> mediumFreeBlocks;
     std::map<BYTE*, int> bigFreeBlocks;
@@ -67,4 +71,6 @@ private:
     void releaseMemory( BYTE* memory, int size );
     std::pair<BYTE*, int> uniteMemory( std::map<BYTE*, int>& memorySet, BYTE* memory, int size );
     void markMemoryFree( BYTE* memory, int size );
+
+    void decommitUnusedMemory();
 };
