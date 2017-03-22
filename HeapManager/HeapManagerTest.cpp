@@ -6,9 +6,10 @@
 
 #include "HeapManager.h"
 
-class HeapManagerTest : public testing::Test {
-protected:
-    HeapManagerTest() : defaultHeap( nullptr )
+class CHeapManagerTest : public testing::Test
+{
+public:
+    CHeapManagerTest() : customHeap(), defaultHeap( nullptr )
     {
         GetSystemInfo( &systemInfo );
     }
@@ -25,6 +26,7 @@ protected:
         customHeap.Destroy();
     }
 
+protected:
     static const int heapInitSize = 4'000;
     static const int heapMaxSize = 1'000'000'000;
 
@@ -34,7 +36,7 @@ protected:
     SYSTEM_INFO systemInfo;
 };
 
-TEST_F( HeapManagerTest, MemoryManagementTime )
+TEST_F( CHeapManagerTest, MemoryManagementTime )
 {
     const int numSeries = 100;
     const int numAllocsInSerie = 1'000;
@@ -100,7 +102,7 @@ TEST_F( HeapManagerTest, MemoryManagementTime )
     EXPECT_NEAR( customHeap.CommittedMemorySize(), heapInitSize, systemInfo.dwPageSize );
 }
 
-TEST_F( HeapManagerTest, MemoryUsage )
+TEST_F( CHeapManagerTest, MemoryUsage )
 {
     const int numAllocs = 10'000;
     const int blockSize = 1000;
@@ -114,7 +116,7 @@ TEST_F( HeapManagerTest, MemoryUsage )
     EXPECT_NEAR( customHeap.CommittedMemorySize(), heapInitSize, systemInfo.dwPageSize );
 }
 
-TEST_F( HeapManagerTest, Overflow )
+TEST_F( CHeapManagerTest, Overflow )
 {
     EXPECT_THROW( customHeap.Alloc( heapMaxSize + systemInfo.dwAllocationGranularity + 1 ), std::bad_alloc );
 }

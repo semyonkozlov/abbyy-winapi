@@ -73,8 +73,7 @@ void* CHeapManager::Alloc( int size )
     int lastPageContainsAlloc = pageIndex( memory + allocationSize ); 
     int i = firstPageContainsAlloc;
     do {
-        if( !isCommitted[i] && i >= initHeapSize / systemInfo.dwPageSize ) 
-        {
+        if( !isCommitted[i] && i >= initHeapSize / systemInfo.dwPageSize ) {
             VirtualAlloc( pageAddress( i ), systemInfo.dwPageSize, MEM_COMMIT, PAGE_READWRITE );
             ++numCommittedPages;
             isCommitted[i] = true;
@@ -125,6 +124,7 @@ int CHeapManager::CommittedMemorySize() const noexcept
 void CHeapManager::Optimize()
 {
     decommitUnusedMemory();
+    collectCounter = 0;
 }
 
 int CHeapManager::granularRound( int granulaSize, int value ) noexcept
