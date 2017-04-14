@@ -22,6 +22,8 @@ CHeapManager::~CHeapManager()
     }
 }
 
+
+
 void CHeapManager::Create( int initSize, int maxSize )
 {
     if( maxSize < initSize ) {

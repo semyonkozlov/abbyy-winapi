@@ -5,7 +5,7 @@
 
 #include <Windows.h>
 
-const wchar_t* LibPath = L"C:/Users/Semyon/Documents/Visual Studio 2017/Projects/AbbyyWinapi/x64/Debug/WordsCountDll.dll";
+const wchar_t* LibPath = L"WordsCountDll.dll";
 
 int main( int argc, char* argv[] )
 {
@@ -21,5 +21,6 @@ int main( int argc, char* argv[] )
         MessageBox( NULL, std::to_wstring( numWords ).c_str(), L"WordsCount", MB_DEFAULT_DESKTOP_ONLY );
     }
 
+    FreeLibrary( wordsCountDll );
     return EXIT_SUCCESS;
 }
