@@ -14,8 +14,6 @@ public:
 private:
     int numWorkers;
 
-    std::ifstream targetWordsFile;
-
     std::vector<std::ofstream> tempFiles;
 
     std::vector<STARTUPINFO> startupInfos;

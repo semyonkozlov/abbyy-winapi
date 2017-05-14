@@ -8,9 +8,12 @@
 const std::string CTextFilter::workerExeFilename = "Worker.exe";
 
 CTextFilter::CTextFilter( const std::string& targetWordsFilename, int numWorkers ) :
-        numWorkers( numWorkers ), targetWordsFile( targetWordsFilename ),
-        tempFiles( numWorkers ), startupInfos( numWorkers ), processInfos( numWorkers ), 
-        newTaskEvents( numWorkers ), finishedTaskEvents( numWorkers )
+        numWorkers( numWorkers ),
+        tempFiles( numWorkers ), 
+        startupInfos( numWorkers ), 
+        processInfos( numWorkers ), 
+        newTaskEvents( numWorkers ), 
+        finishedTaskEvents( numWorkers )
 {
     std::string workerCommandLine = workerExeFilename + ' ' + targetWordsFilename + ' ';
     for( int i = 0; i < numWorkers; ++i ) {
@@ -33,12 +36,12 @@ CTextFilter::CTextFilter( const std::string& targetWordsFilename, int numWorkers
                 (std::string( "Global\\NewTaskEvent1337_" ) + std::to_string( i )).c_str() );
 
         finishedTaskEvents[i] = CreateEvent( nullptr, TRUE, FALSE,
-                (std::string( "Global\\FinishTaskEvent1337_" ) + std::to_string( i )).c_str() );
+                (std::string( "Global\\FinishedTaskEvent1337_" ) + std::to_string( i )).c_str() );
 
-        tempFiles[i] = { (std::string( "WorkerTempFile_" ) + std::to_string( i )).c_str() };
+        tempFiles[i] = { (std::string( "WorkersTempFile_" ) + std::to_string( i )).c_str() };
     }
 
-    terminateEvent = CreateEvent( nullptr, TRUE, FALSE, "Global\\TerminateWorkersEvent1337" );
+    terminateEvent = CreateEvent( nullptr, TRUE, FALSE, "Global\\TerminateEvent1337" );
 }
 
 CTextFilter::~CTextFilter()
