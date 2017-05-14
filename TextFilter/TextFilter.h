@@ -6,22 +6,25 @@
 
 class CTextFilter {
 public:
-    CTextFilter( const std::wstring& targetWordsFileName, 
-        int numWorkers = 4, const std::wstring& workerExeFileName = L"Worker.exe" );
+    CTextFilter( const std::string& targetWordsFilename, int numWorkers = 4 );
     ~CTextFilter();
-    void Filter(const std::wstring& fileToFilter, const std::wstring& newFileName );
+
+    void Filter( std::ifstream& inputFile, std::ofstream& outputFile );
 
 private:
-    std::wstring targetWordsFileName;
     int numWorkers;
-    std::wstring workerExeFileName;
 
-    std::vector<PROCESS_INFORMATION> proñessInfos;
-    std::vector<STARTUPINFOW> startupInfos;
+    std::ifstream targetWordsFile;
+
+    std::vector<std::ofstream> tempFiles;
+
+    std::vector<STARTUPINFO> startupInfos;
+    std::vector<PROCESS_INFORMATION> processInfos;
 
     std::vector<HANDLE> newTaskEvents;
-    std::vector<HANDLE> finishTaskEvents;
-    HANDLE terminateWorkersEvent;
+    std::vector<HANDLE> finishedTaskEvents;
 
-    std::vector<std::wofstream> tempFiles;
+    HANDLE terminateEvent;
+
+    static const std::string workerExeFilename;
 };

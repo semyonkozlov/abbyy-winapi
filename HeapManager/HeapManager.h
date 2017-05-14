@@ -65,7 +65,6 @@ private:
 
     BYTE* reserveMemory( int size );
     BYTE* reserveMemory( std::map<BYTE*, int>& memorySet, int size );
-    
     void releaseMemory( BYTE* memory, int size );
     std::pair<BYTE*, int> uniteMemory( std::map<BYTE*, int>& memorySet, BYTE* memory, int size );
     void markMemoryFree( BYTE* memory, int size );

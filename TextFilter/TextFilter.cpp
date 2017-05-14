@@ -1,56 +1,88 @@
-#include <memory>
 #include <fstream>
 #include <string>
+#include <filesystem>
+#include <iterator>
 
 #include "TextFilter.h"
-#include <filesystem>
 
-CTextFilter::CTextFilter( const std::wstring& targetWordsFileName, 
-    int numWorkers, const std::wstring& workerExeFileName ) :
-        targetWordsFileName( targetWordsFileName ), numWorkers( numWorkers ), workerExeFileName( workerExeFileName ), 
-        proñessInfos( numWorkers ), startupInfos( numWorkers ),
-        newTaskEvents( numWorkers ), finishTaskEvents( numWorkers ), terminateWorkersEvent(),
-        tempFiles( numWorkers )
+const std::string CTextFilter::workerExeFilename = "Worker.exe";
+
+CTextFilter::CTextFilter( const std::string& targetWordsFilename, int numWorkers ) :
+        numWorkers( numWorkers ), targetWordsFile( targetWordsFilename ),
+        tempFiles( numWorkers ), startupInfos( numWorkers ), processInfos( numWorkers ), 
+        newTaskEvents( numWorkers ), finishedTaskEvents( numWorkers )
 {
-    std::wstring workerCommandLine = workerExeFileName + L' ' + targetWordsFileName + L' ';
-
+    std::string workerCommandLine = workerExeFilename + ' ' + targetWordsFilename + ' ';
     for( int i = 0; i < numWorkers; ++i ) {
-        if( CreateProcessW( workerExeFileName.c_str(),
-            const_cast<LPWSTR>( (workerCommandLine + std::to_wstring( i )).c_str() ),
-            nullptr, nullptr, FALSE, CREATE_DEFAULT_ERROR_MODE, nullptr, nullptr,
-            &startupInfos[i], &proñessInfos[i] ) == 0 ) 
-        {
-            throw std::runtime_error( "Fail creating process." );
-        }
+        ZeroMemory( &startupInfos[i], sizeof( startupInfos[i] ) );
+        startupInfos[i].cb = sizeof( startupInfos[i] );
+        ZeroMemory( &processInfos[i], sizeof( processInfos[i] ) );
 
-        newTaskEvents[i] = CreateEventW( nullptr, TRUE, FALSE, 
-            (std::wstring( L"Global\\NewTaskEvent1337_" ) + std::to_wstring( i )).c_str() );
+        CreateProcess( workerExeFilename.c_str(),
+                const_cast<LPSTR>( (workerCommandLine + ' ' + std::to_string( i )).c_str() ),
+                nullptr,
+                nullptr,
+                FALSE,
+                CREATE_DEFAULT_ERROR_MODE,
+                nullptr,
+                nullptr,
+                &startupInfos[i],
+                &processInfos[i] );
 
-        finishTaskEvents[i] = CreateEventW( nullptr, TRUE, FALSE, 
-            (std::wstring( L"Global\\FinishTaskEvent1337_" ) + std::to_wstring( i )).c_str() );
+        newTaskEvents[i] = CreateEvent( nullptr, TRUE, FALSE,
+                (std::string( "Global\\NewTaskEvent1337_" ) + std::to_string( i )).c_str() );
 
-        tempFiles[i] = { (std::wstring( L"TempFileWorker_" ) + std::to_wstring( i )).c_str() };
+        finishedTaskEvents[i] = CreateEvent( nullptr, TRUE, FALSE,
+                (std::string( "Global\\FinishTaskEvent1337_" ) + std::to_string( i )).c_str() );
+
+        tempFiles[i] = { (std::string( "WorkerTempFile_" ) + std::to_string( i )).c_str() };
     }
 
-    terminateWorkersEvent = CreateEventW( nullptr, TRUE, FALSE, L"Global\\TerminateWorkersEvent1337" );
+    terminateEvent = CreateEvent( nullptr, TRUE, FALSE, "Global\\TerminateWorkersEvent1337" );
 }
 
 CTextFilter::~CTextFilter()
 {
     for( int i = 0; i < numWorkers; ++i ) {
-        CloseHandle( proñessInfos[i].hProcess );
-        CloseHandle( proñessInfos[i].hThread );
+        CloseHandle( processInfos[i].hProcess );
+        CloseHandle( processInfos[i].hThread );
 
         CloseHandle( newTaskEvents[i] );
-        CloseHandle( finishTaskEvents[i] );
+        CloseHandle( finishedTaskEvents[i] );
 
         tempFiles[i].close();
-        std::experimental::filesystem::remove( std::wstring( L"TempFileWorker_" ) + std::to_wstring( i ) );
+        std::experimental::filesystem::remove( std::string( "WorkerTempFile_" ) + std::to_string( i ) );
     }
 
-    CloseHandle( terminateWorkersEvent );
+    SetEvent( terminateEvent );
+    CloseHandle( terminateEvent );
 }
 
-void CTextFilter::Filter( const std::wstring& fileToFilter, const std::wstring& newFileName )
+void CTextFilter::Filter( std::ifstream& inputFile, std::ofstream& outputFile )
 {
+    std::vector<std::string> fileContent( std::istream_iterator<std::string>( inputFile ), {});
+    
+    int chunkSize = fileContent.size() / numWorkers;
+    int remainderSize = fileContent.size() % numWorkers;
+
+    int i = 0;
+    for( auto leftIt = std::cbegin( fileContent ), rightIt = leftIt;
+         leftIt < std::cend( fileContent );
+         leftIt = rightIt, ++i ) 
+    {
+        rightIt = leftIt + chunkSize + (remainderSize > 0 ? 1 : 0);
+        if ( remainderSize > 0 ) {
+            --remainderSize;
+        }
+
+        std::copy( leftIt, rightIt, std::ostream_iterator<std::string>( tempFiles[i], " " ) );
+        ResetEvent( finishedTaskEvents[i] );
+        SetEvent( newTaskEvents[i] );
+    }
+
+    WaitForMultipleObjects( numWorkers, finishedTaskEvents.data(), TRUE, INFINITE );
+
+    for( i = 0; i < numWorkers; ++i ) {
+        outputFile << tempFiles[i].rdbuf();
+    }
 }

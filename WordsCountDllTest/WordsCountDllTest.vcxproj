@@ -142,11 +142,6 @@
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\WordsCountDll\WordsCountDll.vcxproj">
-      <Project>{1125fe70-0946-4435-af91-ea8c638485e5}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
