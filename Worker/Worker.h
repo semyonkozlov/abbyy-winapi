@@ -1,12 +1,11 @@
 #pragma once
 
 #include <Windows.h>
-#include <fstream>
 #include <unordered_set>
 
 class CWorker {
 public:
-    CWorker( const std::string& targetWordsFilename, int id );
+    CWorker( const std::string& targetWordsFilename );
     ~CWorker();
 
     void Work();
@@ -19,5 +18,7 @@ private:
     HANDLE finishedTaskEvent;
     HANDLE terminateEvent;
 
-    std::fstream tempFile;
+    char* fileView;
+
+    static int workersCounter;
 };

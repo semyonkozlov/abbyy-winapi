@@ -1,7 +1,8 @@
 #pragma once
 
+#define NOMINMAX // to enable std::min
+
 #include <Windows.h>
-#include <fstream>
 #include <vector>
 
 class CTextFilter {
@@ -9,12 +10,12 @@ public:
     CTextFilter( const std::string& targetWordsFilename, int numWorkers = 4 );
     ~CTextFilter();
 
-    void Filter( std::ifstream& inputFile, std::ofstream& outputFile );
+    void Filter( HANDLE inputFile, HANDLE outputFile );
 
 private:
     int numWorkers;
 
-    std::vector<std::ofstream> tempFiles;
+    std::vector<char*> fileViews;
 
     std::vector<STARTUPINFO> startupInfos;
     std::vector<PROCESS_INFORMATION> processInfos;

@@ -1,23 +1,29 @@
-#include <filesystem>
 #include <iterator>
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <cctype>
 
 #include "Worker.h"
 
-CWorker::CWorker( const std::string& targetWordsFilename, int id ) :
-        id( id ), 
-        tempFile( std::string( "WorkerTempFile_" ) + std::to_string( id ) ) 
-        
+#define IDENT( str, id ) str#id
+
+int CWorker::workersCounter = 0;
+
+CWorker::CWorker( const std::string& targetWordsFilename ) : id( workersCounter++ )
 {
     std::ifstream targetWordsFile( targetWordsFilename );
     targetWords = { std::istream_iterator<std::string>( targetWordsFile), {} };
     targetWordsFile.close();
     
-    newTaskEvent = CreateEvent( nullptr, TRUE, FALSE,
-            (std::string( "Global\\NewTaskEvent1337_" ) + std::to_string( id )).c_str() );
-    finishedTaskEvent = CreateEvent( nullptr, TRUE, FALSE,
-            (std::string( "Global\\FinishedTaskEvent1337_" ) + std::to_string( id )).c_str() );
-    terminateEvent = CreateEvent( nullptr, TRUE, FALSE, "Global\\TerminateEvent1337" );
+    newTaskEvent = CreateEvent( nullptr, FALSE, FALSE, IDENT( "Global\\TFNewTaskEvent", id ) );
+    finishedTaskEvent = CreateEvent( nullptr, FALSE, FALSE, IDENT( "Global\\TFFinishedTaskEvent", id ) );
+    terminateEvent = CreateEvent( nullptr, TRUE, FALSE, "Global\\TFTerminateEvent" );
+
+    auto fileMapping = OpenFileMapping( FILE_MAP_ALL_ACCESS, FALSE, IDENT( "Global\\TFTempFileMapping", id ) );
+
+    fileView = static_cast<char*>( MapViewOfFile( fileMapping, FILE_MAP_ALL_ACCESS, 0, 0, 0 ) ); // TODO last arg susp
+    CloseHandle( fileMapping ); // TODO mb don't close
 }
 
 CWorker::~CWorker()
@@ -26,31 +32,45 @@ CWorker::~CWorker()
     CloseHandle( finishedTaskEvent );
     CloseHandle( terminateEvent );
 
-    tempFile.close();
+    UnmapViewOfFile( fileView );
 }
 
 void CWorker::Work()
 {
     while( true ) {
-        ResetEvent( finishedTaskEvent );
-
         std::vector<HANDLE> eventsToWait{ terminateEvent, newTaskEvent };
-        DWORD waitStatus = WaitForMultipleObjects( eventsToWait.size(), eventsToWait.data(), FALSE, INFINITE );
+        auto waitStatus = WaitForMultipleObjects( eventsToWait.size(), eventsToWait.data(), FALSE, INFINITE );
         switch( waitStatus ) {
             case WAIT_OBJECT_0 + 0: // terminate event
                 return;
             case WAIT_OBJECT_0 + 1: // new task event
             {
-                std::vector<std::string> fileContent( std::istream_iterator<std::string>( tempFile ), {} );
-                std::vector<std::string> filteredContent;
-                for( auto&& str : fileContent ) {
-                    if( targetWords.find( str ) == targetWords.end() ) {
-                        filteredContent.push_back( str );
+                // two scan lines
+                char* currentWordPtr = fileView;
+                int filteredViewShift = 0;
+
+                while( *currentWordPtr != '\0' ) {
+                    while( std::isspace( *currentWordPtr ) ) {
+                        fileView[filteredViewShift++] = *currentWordPtr; // copy whitespaces
+                        ++currentWordPtr;
                     }
+
+                    int wordSize = 0;
+
+                    // set word apart
+                    while( !isspace( currentWordPtr[wordSize] ) && currentWordPtr[wordSize] != '\0' ) { 
+                        ++wordSize;
+                    }
+                    std::string word( currentWordPtr, wordSize );
+                    if( targetWords.find( word ) == targetWords.end() ) {
+                        CopyMemory( fileView + filteredViewShift, word.c_str(), word.length() );
+                        filteredViewShift += wordSize;
+                    }
+
+                    currentWordPtr += wordSize;
                 }
 
-                std::copy( std::cbegin( filteredContent ), std::cend( filteredContent ),
-                           std::ostream_iterator<std::string>( tempFile, " " ) );
+                fileView[filteredViewShift + 1] = '\0';
 
                 SetEvent( finishedTaskEvent );
             }
