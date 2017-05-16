@@ -1,7 +1,8 @@
 #pragma once
 
-#include <Windows.h>
 #include <unordered_set>
+
+#include <Windows.h>
 
 class CWorker {
 public:

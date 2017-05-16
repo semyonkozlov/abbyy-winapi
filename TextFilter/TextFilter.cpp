@@ -12,7 +12,6 @@ const std::string CTextFilter::workerExeFilename = "Worker.exe";
 CTextFilter::CTextFilter( const std::string& targetWordsFilename, int numWorkers ) :
     numWorkers( numWorkers ),
     fileViews( numWorkers ),
-    startupInfos( numWorkers ),
     processInfos( numWorkers ),
     newTaskEvents( numWorkers ),
     finishedTaskEvents( numWorkers )
@@ -28,14 +27,15 @@ CTextFilter::CTextFilter( const std::string& targetWordsFilename, int numWorkers
             nullptr, 
             PAGE_READWRITE, 
             0, 
-            INT_MAX, 
+            fileMapSize, 
             IDENT( "Global\\TFTempFileMapping",  i ));
 
         fileViews[i] = static_cast<char*>( MapViewOfFile( fileMappping, FILE_MAP_WRITE, 0, 0, 0 ) );
         CloseHandle( fileMappping ); // TODO mb do not close here?
            
-        ZeroMemory( &startupInfos[i], sizeof( startupInfos[i] ) );
-        startupInfos[i].cb = sizeof( startupInfos[i] );
+        STARTUPINFO startupInfo;
+        ZeroMemory( &startupInfo, sizeof( startupInfo ) );
+        startupInfo.cb = sizeof( startupInfo );
         ZeroMemory( &processInfos[i], sizeof( processInfos[i] ) );
 
         CreateProcess( workerExeFilename.c_str(),
@@ -46,7 +46,7 @@ CTextFilter::CTextFilter( const std::string& targetWordsFilename, int numWorkers
             CREATE_DEFAULT_ERROR_MODE,
             nullptr,
             nullptr,
-            &startupInfos[i],
+            &startupInfo,
             &processInfos[i] );
     }
 
@@ -75,25 +75,27 @@ void CTextFilter::Filter( HANDLE inputFile, HANDLE outputFile )
    
     auto fileContent = std::make_unique<char[]>( inputFileSize + 1 );
     ReadFile( inputFile, fileContent.get(), inputFileSize, nullptr, nullptr );
- 
-    char* chunkMemory = fileContent.get();
+    
+    char* chunk = fileContent.get();
 
     for( int i = 0; i < numWorkers; ++i ) {
         long long chunkSize = std::min( inputFileSize / numWorkers, 
-            (fileContent.get() + inputFileSize) - chunkMemory); 
+            (fileContent.get() + inputFileSize) - chunk); 
 
         // looking for end of current word
-        while( !std::isspace( chunkMemory[chunkSize] ) && chunkMemory[chunkSize] != '\0' ) { 
+        while( !std::isspace( chunk[chunkSize] ) && chunk[chunkSize] != '\0' ) { 
             ++chunkSize;
         }
 
-        CopyMemory( fileViews[i], chunkMemory, chunkSize );
+        CopyMemory( fileViews[i], chunk, chunkSize );
         fileViews[i][chunkSize + 1] = '\0';
        
         SetEvent( newTaskEvents[i] );
 
-        chunkMemory += chunkSize + 1;
+        chunk += chunkSize + 1;
     }
 
     WaitForMultipleObjects( numWorkers, finishedTaskEvents.data(), TRUE, INFINITE );
+    
+    // TODO write to outputFile
 }

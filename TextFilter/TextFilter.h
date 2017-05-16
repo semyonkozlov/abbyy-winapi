@@ -1,9 +1,9 @@
 #pragma once
 
-#define NOMINMAX // to enable std::min
-
-#include <Windows.h>
 #include <vector>
+
+#define NOMINMAX // to enable std::min
+#include <Windows.h>
 
 class CTextFilter {
 public:
@@ -17,7 +17,6 @@ private:
 
     std::vector<char*> fileViews;
 
-    std::vector<STARTUPINFO> startupInfos;
     std::vector<PROCESS_INFORMATION> processInfos;
 
     std::vector<HANDLE> newTaskEvents;
@@ -26,4 +25,5 @@ private:
     HANDLE terminateEvent;
 
     static const std::string workerExeFilename;
+    static const int fileMapSize = 100000;
 };

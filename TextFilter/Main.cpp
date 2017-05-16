@@ -1,9 +1,34 @@
-#include <iostream>
+#include <Windows.h>
 
-#define CONC( str, id ) (str#id)
+#include "TextFilter.h"
 
-int wmain()
+int main( int argc, char** argv )
 {   
-    std::cout << CONC( "kakakak", 6 ) << std::endl;
+    if( argc < 4 ) {
+        return EXIT_FAILURE;
+    }
+
+    CTextFilter textFilter( argv[1] );
+
+    HANDLE inputFile = CreateFile(
+        argv[2],
+        GENERIC_READ,
+        0,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr );
+
+    HANDLE outputFile = CreateFile(
+        argv[3],
+        GENERIC_WRITE,
+        0,
+        nullptr,
+        OPEN_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr );
+
+    textFilter.Filter( inputFile, outputFile );
+
     return EXIT_SUCCESS;
 } 
