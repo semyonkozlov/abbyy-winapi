@@ -5,14 +5,16 @@
 #include <cassert>
 #include <locale>
 
-#include "TextFilter.h"
+#include <iostream>
 
-#define IDENT( str, id ) str#id
+#include "TextFilter.h"
+#include "Utils.h"
 
 const std::string CTextFilter::workerExeFilename = "Worker.exe";
 
 CTextFilter::CTextFilter( const std::string& targetWordsFilename, int numWorkers ) :
     numWorkers( numWorkers ),
+    fileMaps( numWorkers ),
     fileViews( numWorkers ),
     processInfos( numWorkers ),
     newTaskEvents( numWorkers ),
@@ -20,28 +22,34 @@ CTextFilter::CTextFilter( const std::string& targetWordsFilename, int numWorkers
 {
     std::string workerCommandLine = workerExeFilename + ' ' + targetWordsFilename + ' ';
 
-    terminateEvent = CreateEvent( nullptr, TRUE, FALSE, "TFTerminateEvent" );
+    terminateEvent = CreateEvent( nullptr, TRUE, FALSE, "Global\\TFTerminateEvent" );
     assert( terminateEvent != nullptr );
 
     for( int i = 0; i < numWorkers; ++i ) {
-        newTaskEvents[i] = CreateEvent( nullptr, FALSE, FALSE, IDENT( "TFNewTaskEvent", i ));
+        newTaskEvents[i] = CreateEvent( nullptr, 
+            FALSE, 
+            FALSE,
+            AddId( "Global\\TFNewTaskEvent", i ).c_str());
         assert( newTaskEvents[i] != nullptr );
 
-        finishedTaskEvents[i] = CreateEvent( nullptr, FALSE, FALSE, IDENT( "TFFinishedTaskEvent", i ));
+        finishedTaskEvents[i] = CreateEvent( nullptr, 
+            FALSE, 
+            FALSE, 
+            AddId( "Global\\TFFinishedTaskEvent", i ).c_str());
         assert( finishedTaskEvents[i] != nullptr );
         
         // creating file mappings 
-        auto fileMappping = CreateFileMapping( INVALID_HANDLE_VALUE, 
+        fileMaps[i] = CreateFileMapping( INVALID_HANDLE_VALUE, 
             nullptr, 
             PAGE_READWRITE, 
             0, 
             fileMapSize, 
-            IDENT( "TFTempFileMapping",  i ));
-        assert( fileMappping != nullptr );
+            AddId( "Global\\TFTempFileMapping", i ).c_str());
+        assert( fileMaps[i] != nullptr );
 
-        fileViews[i] = static_cast<char*>( MapViewOfFile( fileMappping, FILE_MAP_WRITE, 0, 0, 0 ) );
+        fileViews[i] = static_cast<char*>( MapViewOfFile( fileMaps[i], FILE_MAP_WRITE, 0, 0, 0 ) );
         assert( fileViews[i] != nullptr );
-        CloseHandle( fileMappping ); // TODO mb do not close here?
+        //CloseHandle( fileMappping ); // TODO mb do not close here?
            
         STARTUPINFO startupInfo;
         ZeroMemory( &startupInfo, sizeof( startupInfo ) );
@@ -72,6 +80,7 @@ CTextFilter::~CTextFilter()
         CloseHandle( finishedTaskEvents[i] );
 
         UnmapViewOfFile( fileViews[i] );
+        CloseHandle( fileMaps[i] );
     }
 
     SetEvent( terminateEvent );

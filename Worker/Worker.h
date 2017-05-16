@@ -19,5 +19,6 @@ private:
     HANDLE finishedTaskEvent;
     HANDLE terminateEvent;
 
+    HANDLE fileMap;
     char* fileView;
 };

@@ -3,10 +3,10 @@
 #include <fstream>
 #include <sstream>
 #include <cctype>
+#include <cassert>
 
 #include "Worker.h"
-
-#define IDENT( str, id ) str#id
+#include "Utils.h"
 
 CWorker::CWorker( const std::string& targetWordsFilename, int id ) : id( id )
 {
@@ -14,14 +14,28 @@ CWorker::CWorker( const std::string& targetWordsFilename, int id ) : id( id )
     targetWords = { std::istream_iterator<std::string>( targetWordsFile), {} };
     targetWordsFile.close();
 
-    newTaskEvent = CreateEvent( nullptr, FALSE, FALSE, IDENT( "TFNewTaskEvent", id ) );
-    finishedTaskEvent = CreateEvent( nullptr, FALSE, FALSE, IDENT( "TFFinishedTaskEvent", id ) );
-    terminateEvent = CreateEvent( nullptr, TRUE, FALSE, "TFTerminateEvent" );
+    newTaskEvent = CreateEvent( nullptr, 
+        FALSE,
+        FALSE,
+        AddId( "Global\\TFNewTaskEvent", id ).c_str() );
+    assert( newTaskEvent != nullptr );
+    
+    finishedTaskEvent = CreateEvent( nullptr, 
+        FALSE, 
+        FALSE, 
+        AddId( "Global\\TFFinishedTaskEvent", id ).c_str() );
+    assert( finishedTaskEvent != nullptr );
 
-    auto fileMapping = OpenFileMapping( FILE_MAP_ALL_ACCESS, FALSE, IDENT( "TFTempFileMapping", id ) );
+    terminateEvent = CreateEvent( nullptr, TRUE, FALSE, "Global\\TFTerminateEvent" );
+    assert( terminateEvent != nullptr );
 
-    fileView = static_cast<char*>( MapViewOfFile( fileMapping, FILE_MAP_ALL_ACCESS, 0, 0, 0 ) ); // TODO last arg susp
-    CloseHandle( fileMapping ); // TODO mb don't close
+    fileMap = OpenFileMapping( FILE_MAP_ALL_ACCESS, 
+        FALSE, 
+        AddId( "Global\\TFTempFileMapping", id ).c_str() );
+    assert( fileMap != nullptr );
+
+    fileView = static_cast<char*>( MapViewOfFile( fileMap, FILE_MAP_ALL_ACCESS, 0, 0, 0 ) ); // TODO last arg susp
+    assert( fileView != nullptr );
 }
 
 CWorker::~CWorker()
@@ -31,6 +45,7 @@ CWorker::~CWorker()
     CloseHandle( terminateEvent );
 
     UnmapViewOfFile( fileView );
+    CloseHandle( fileMap );
 }
 
 void CWorker::Work()
@@ -72,8 +87,6 @@ void CWorker::Work()
 
                 SetEvent( finishedTaskEvent );
             }
-            default:
-                std::cerr << "Error waiting object." << std::endl; // TODO replace with exception mb
         }
     }
 }

@@ -15,6 +15,7 @@ public:
 private:
     int numWorkers;
 
+    std::vector<HANDLE> fileMaps;
     std::vector<char*> fileViews;
 
     std::vector<PROCESS_INFORMATION> processInfos;
