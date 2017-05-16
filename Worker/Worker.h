@@ -6,7 +6,7 @@
 
 class CWorker {
 public:
-    CWorker( const std::string& targetWordsFilename );
+    CWorker( const std::string& targetWordsFilename, int id );
     ~CWorker();
 
     void Work();
@@ -20,6 +20,4 @@ private:
     HANDLE terminateEvent;
 
     char* fileView;
-
-    static int workersCounter;
 };

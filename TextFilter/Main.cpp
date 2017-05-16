@@ -21,7 +21,7 @@ int main( int argc, char** argv )
 
     HANDLE outputFile = CreateFile(
         argv[3],
-        GENERIC_WRITE,
+        FILE_APPEND_DATA,
         0,
         nullptr,
         OPEN_ALWAYS,

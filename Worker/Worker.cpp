@@ -8,19 +8,17 @@
 
 #define IDENT( str, id ) str#id
 
-int CWorker::workersCounter = 0;
-
-CWorker::CWorker( const std::string& targetWordsFilename ) : id( workersCounter++ )
+CWorker::CWorker( const std::string& targetWordsFilename, int id ) : id( id )
 {
     std::ifstream targetWordsFile( targetWordsFilename );
     targetWords = { std::istream_iterator<std::string>( targetWordsFile), {} };
     targetWordsFile.close();
-    
-    newTaskEvent = CreateEvent( nullptr, FALSE, FALSE, IDENT( "Global\\TFNewTaskEvent", id ) );
-    finishedTaskEvent = CreateEvent( nullptr, FALSE, FALSE, IDENT( "Global\\TFFinishedTaskEvent", id ) );
-    terminateEvent = CreateEvent( nullptr, TRUE, FALSE, "Global\\TFTerminateEvent" );
 
-    auto fileMapping = OpenFileMapping( FILE_MAP_ALL_ACCESS, FALSE, IDENT( "Global\\TFTempFileMapping", id ) );
+    newTaskEvent = CreateEvent( nullptr, FALSE, FALSE, IDENT( "TFNewTaskEvent", id ) );
+    finishedTaskEvent = CreateEvent( nullptr, FALSE, FALSE, IDENT( "TFFinishedTaskEvent", id ) );
+    terminateEvent = CreateEvent( nullptr, TRUE, FALSE, "TFTerminateEvent" );
+
+    auto fileMapping = OpenFileMapping( FILE_MAP_ALL_ACCESS, FALSE, IDENT( "TFTempFileMapping", id ) );
 
     fileView = static_cast<char*>( MapViewOfFile( fileMapping, FILE_MAP_ALL_ACCESS, 0, 0, 0 ) ); // TODO last arg susp
     CloseHandle( fileMapping ); // TODO mb don't close
@@ -75,7 +73,7 @@ void CWorker::Work()
                 SetEvent( finishedTaskEvent );
             }
             default:
-                std::cerr << "Error waiting object." << std::endl;
+                std::cerr << "Error waiting object." << std::endl; // TODO replace with exception mb
         }
     }
 }

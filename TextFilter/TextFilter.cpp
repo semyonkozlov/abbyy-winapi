@@ -2,6 +2,8 @@
 #include <memory>
 #include <string>
 #include <algorithm>
+#include <cassert>
+#include <locale>
 
 #include "TextFilter.h"
 
@@ -16,11 +18,17 @@ CTextFilter::CTextFilter( const std::string& targetWordsFilename, int numWorkers
     newTaskEvents( numWorkers ),
     finishedTaskEvents( numWorkers )
 {
-    std::string workerCommandLine = workerExeFilename + ' ' + targetWordsFilename;
+    std::string workerCommandLine = workerExeFilename + ' ' + targetWordsFilename + ' ';
+
+    terminateEvent = CreateEvent( nullptr, TRUE, FALSE, "TFTerminateEvent" );
+    assert( terminateEvent != nullptr );
 
     for( int i = 0; i < numWorkers; ++i ) {
-        newTaskEvents[i] = CreateEvent( nullptr, FALSE, FALSE, IDENT( "Global\\TFNewTaskEvent", i ));
-        finishedTaskEvents[i] = CreateEvent( nullptr, FALSE, FALSE, IDENT( "Global\\TFFinishedTaskEvent", i ));
+        newTaskEvents[i] = CreateEvent( nullptr, FALSE, FALSE, IDENT( "TFNewTaskEvent", i ));
+        assert( newTaskEvents[i] != nullptr );
+
+        finishedTaskEvents[i] = CreateEvent( nullptr, FALSE, FALSE, IDENT( "TFFinishedTaskEvent", i ));
+        assert( finishedTaskEvents[i] != nullptr );
         
         // creating file mappings 
         auto fileMappping = CreateFileMapping( INVALID_HANDLE_VALUE, 
@@ -28,9 +36,11 @@ CTextFilter::CTextFilter( const std::string& targetWordsFilename, int numWorkers
             PAGE_READWRITE, 
             0, 
             fileMapSize, 
-            IDENT( "Global\\TFTempFileMapping",  i ));
+            IDENT( "TFTempFileMapping",  i ));
+        assert( fileMappping != nullptr );
 
         fileViews[i] = static_cast<char*>( MapViewOfFile( fileMappping, FILE_MAP_WRITE, 0, 0, 0 ) );
+        assert( fileViews[i] != nullptr );
         CloseHandle( fileMappping ); // TODO mb do not close here?
            
         STARTUPINFO startupInfo;
@@ -38,8 +48,8 @@ CTextFilter::CTextFilter( const std::string& targetWordsFilename, int numWorkers
         startupInfo.cb = sizeof( startupInfo );
         ZeroMemory( &processInfos[i], sizeof( processInfos[i] ) );
 
-        CreateProcess( workerExeFilename.c_str(),
-            const_cast<LPSTR>( workerCommandLine.c_str() ),
+        int createProcStatus = CreateProcess( workerExeFilename.c_str(),
+            const_cast<LPSTR>( (workerCommandLine + std::to_string( i )).c_str() ),
             nullptr,
             nullptr,
             FALSE,
@@ -48,9 +58,8 @@ CTextFilter::CTextFilter( const std::string& targetWordsFilename, int numWorkers
             nullptr,
             &startupInfo,
             &processInfos[i] );
+        assert( createProcStatus != 0 );
     }
-
-    terminateEvent = CreateEvent( nullptr, TRUE, FALSE, "TFTerminateEvent" );
 }
 
 CTextFilter::~CTextFilter()
@@ -92,10 +101,12 @@ void CTextFilter::Filter( HANDLE inputFile, HANDLE outputFile )
        
         SetEvent( newTaskEvents[i] );
 
-        chunk += chunkSize + 1;
+        chunk += chunkSize;
     }
 
     WaitForMultipleObjects( numWorkers, finishedTaskEvents.data(), TRUE, INFINITE );
-    
-    // TODO write to outputFile
+
+    for( int i = 0; i < numWorkers; ++i ) {
+        WriteFile( outputFile, fileViews[i], std::strlen( fileViews[i] ), nullptr, nullptr );
+    }
 }
