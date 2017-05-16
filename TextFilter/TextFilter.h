@@ -10,7 +10,7 @@ public:
     CTextFilter( const std::string& targetWordsFilename, int numWorkers = 4 );
     ~CTextFilter();
 
-    void Filter( HANDLE inputFile, HANDLE outputFile );
+    void Filter( const std::string& inputFilename, const std::string& outputFilename );
 
 private:
     int numWorkers;

@@ -10,25 +10,7 @@ int main( int argc, char** argv )
 
     CTextFilter textFilter( argv[1] );
 
-    HANDLE inputFile = CreateFile(
-        argv[2],
-        GENERIC_READ,
-        0,
-        nullptr,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        nullptr );
-
-    HANDLE outputFile = CreateFile(
-        argv[3],
-        FILE_APPEND_DATA,
-        0,
-        nullptr,
-        OPEN_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        nullptr );
-
-    textFilter.Filter( inputFile, outputFile );
+    textFilter.Filter( argv[2], argv[3] );
 
     return EXIT_SUCCESS;
 } 

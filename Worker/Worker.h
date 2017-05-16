@@ -1,6 +1,7 @@
 #pragma once
 
-#include <unordered_set>
+#define _SCL_SECURE_NO_WARNINGS
+#include <regex>
 
 #include <Windows.h>
 
@@ -13,7 +14,7 @@ public:
 
 private:
     int id;
-    std::unordered_set<std::string> targetWords;
+    std::regex targetWords;
 
     HANDLE newTaskEvent;
     HANDLE finishedTaskEvent;

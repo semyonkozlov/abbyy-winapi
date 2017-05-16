@@ -3,12 +3,10 @@
 #include <string>
 #include <algorithm>
 #include <cassert>
-#include <locale>
-
-#include <iostream>
 
 #include "TextFilter.h"
-#include "Utils.h"
+
+#define ADD_ID( str, id ) (std::string(str) + std::to_string( id )).c_str()
 
 const std::string CTextFilter::workerExeFilename = "Worker.exe";
 
@@ -26,25 +24,25 @@ CTextFilter::CTextFilter( const std::string& targetWordsFilename, int numWorkers
     assert( terminateEvent != nullptr );
 
     for( int i = 0; i < numWorkers; ++i ) {
-        newTaskEvents[i] = CreateEvent( nullptr, 
-            FALSE, 
+        newTaskEvents[i] = CreateEvent( nullptr,
             FALSE,
-            AddId( "Global\\TFNewTaskEvent", i ).c_str());
+            FALSE,
+            ADD_ID( "Global\\TFNewTaskEvent", i ) );
         assert( newTaskEvents[i] != nullptr );
 
         finishedTaskEvents[i] = CreateEvent( nullptr, 
             FALSE, 
             FALSE, 
-            AddId( "Global\\TFFinishedTaskEvent", i ).c_str());
+            ADD_ID( "Global\\TFFinishedTaskEvent", i ) );
         assert( finishedTaskEvents[i] != nullptr );
         
         // creating file mappings 
-        fileMaps[i] = CreateFileMapping( INVALID_HANDLE_VALUE, 
-            nullptr, 
-            PAGE_READWRITE, 
-            0, 
-            fileMapSize, 
-            AddId( "Global\\TFTempFileMapping", i ).c_str());
+        fileMaps[i] = CreateFileMapping( INVALID_HANDLE_VALUE,
+            nullptr,
+            PAGE_READWRITE,
+            0,
+            fileMapSize,
+            ADD_ID( "Global\\TFTempFileMapping", i ) );
         assert( fileMaps[i] != nullptr );
 
         fileViews[i] = static_cast<char*>( MapViewOfFile( fileMaps[i], FILE_MAP_WRITE, 0, 0, 0 ) );
@@ -87,8 +85,26 @@ CTextFilter::~CTextFilter()
     CloseHandle( terminateEvent );
 }
 
-void CTextFilter::Filter( HANDLE inputFile, HANDLE outputFile )
+void CTextFilter::Filter( const std::string& inputFilename, const std::string& outputFilename )
 {
+    HANDLE inputFile = CreateFile(
+        inputFilename.c_str(),
+        GENERIC_READ,
+        0,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr );
+
+    HANDLE outputFile = CreateFile(
+        outputFilename.c_str(),
+        FILE_APPEND_DATA,
+        0,
+        nullptr,
+        OPEN_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr );
+
     long long inputFileSize = GetFileSize( inputFile, nullptr );
    
     auto fileContent = std::make_unique<char[]>( inputFileSize + 1 );
@@ -118,4 +134,7 @@ void CTextFilter::Filter( HANDLE inputFile, HANDLE outputFile )
     for( int i = 0; i < numWorkers; ++i ) {
         WriteFile( outputFile, fileViews[i], std::strlen( fileViews[i] ), nullptr, nullptr );
     }
+
+    CloseHandle( inputFile );
+    CloseHandle( outputFile );
 }
