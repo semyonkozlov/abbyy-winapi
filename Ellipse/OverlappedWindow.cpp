@@ -1,17 +1,23 @@
+#define NOMINMAX
+
+#include <algorithm>
+#include <cmath>
+#include <cassert>
+
 #include "OverlappedWindow.h"
 
-const std::wstring COverlappedWindow::className = L"Overlapped Window";
+const std::string COverlappedWindow::className = "Overlapped Window";
+const double COverlappedWindow::dt = 0.1;
 
-COverlappedWindow::COverlappedWindow( const std::wstring& windowName ) :
-    handle( nullptr ), windowName( windowName )
+COverlappedWindow::COverlappedWindow( const std::string& windowName ) :
+    windowHandle( nullptr ), windowName( windowName ), timer( 0 ), t( 0 )
 {
 }
 
 bool COverlappedWindow::RegisterClass()
 {
-    WNDCLASSEXW wcx;
+    WNDCLASS wcx;
 
-    wcx.cbSize = sizeof( wcx );
     wcx.style = CS_HREDRAW | CS_VREDRAW;
     wcx.lpfnWndProc = windowProc;
     wcx.cbClsExtra = 0;
@@ -22,14 +28,13 @@ bool COverlappedWindow::RegisterClass()
     wcx.hbrBackground = reinterpret_cast<HBRUSH>( COLOR_WINDOW + 1 );
     wcx.lpszMenuName = nullptr;
     wcx.lpszClassName = className.c_str();
-    wcx.hIconSm = nullptr;
 
-    return RegisterClassExW( &wcx );
+    return ::RegisterClass( &wcx );
 }
 
 bool COverlappedWindow::Create()
 {
-    handle = CreateWindowW(
+    windowHandle = CreateWindow(
         className.c_str(),
         windowName.c_str(),
         WS_OVERLAPPEDWINDOW,
@@ -37,28 +42,134 @@ bool COverlappedWindow::Create()
         CW_USEDEFAULT,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        nullptr,
+        HWND_DESKTOP,
         nullptr,
         GetModuleHandle( nullptr ),
         this );
 
-    return handle;
+    assert( windowHandle != nullptr );
+
+    return windowHandle;
 }
 
 void COverlappedWindow::Show( int cmdShow ) const
 {
-    ShowWindow( handle, cmdShow );
-    UpdateWindow( handle );
+    ShowWindow( windowHandle, cmdShow );
+    UpdateWindow( windowHandle );
+}
+
+void COverlappedWindow::OnCreate()
+{
+    timer = SetTimer( windowHandle, 0, 50, nullptr );
+}
+
+void COverlappedWindow::OnNCCreate( HWND otherHandle )
+{
+    windowHandle = otherHandle;
+}
+
+void COverlappedWindow::OnPaint()
+{ 
+    PAINTSTRUCT paintStruct;
+    HDC windowContext = BeginPaint( windowHandle, &paintStruct );
+
+    RECT rect;
+    GetClientRect( windowHandle, &rect );
+
+    HDC compatibleContext = CreateCompatibleDC( windowContext );
+    HBITMAP windowBuffer = CreateCompatibleBitmap( windowContext, 
+        rect.right - rect.left, 
+        rect.bottom - rect.top );
+
+    HGDIOBJ oldWindowBuffer = SelectObject( compatibleContext, windowBuffer );
+
+    int r_ = std::min((rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2) - r;
+    int x = (rect.left + rect.right) / 2 + r_ * std::cos( t );
+    int y = (rect.top + rect.bottom) / 2 + r_ * std::sin( t );
+
+    FillRect( compatibleContext, &rect, static_cast<HBRUSH>( GetStockObject( GRAY_BRUSH ) ) );
+    
+    // TODO: drawing ellipse
+    HPEN pen = CreatePen( PS_SOLID, 1, RGB( 0, 0, 0 ) );
+    HGDIOBJ oldPen = SelectObject( compatibleContext, pen );
+
+    HBRUSH brush = CreateSolidBrush( RGB( 255, 255, 255 ) );
+    HGDIOBJ oldBrush = SelectObject( compatibleContext, brush );
+    Ellipse( compatibleContext, x - 2 * r, y - r, x + 2 * r, y + r );
+
+    SelectObject( compatibleContext, oldPen );
+    SelectObject( compatibleContext, oldBrush );
+
+    DeleteObject( brush );
+    DeleteObject( pen );
+
+    BitBlt( windowContext,
+        rect.left,
+        rect.top, 
+        rect.right - rect.left, 
+        rect.bottom - rect.top, 
+        compatibleContext, 
+        0, 
+        0,
+        SRCCOPY );
+
+    SelectObject( compatibleContext, oldWindowBuffer );
+    DeleteObject( windowBuffer );
+    DeleteDC( compatibleContext );
+    
+    EndPaint( windowHandle, &paintStruct );
+}
+
+void COverlappedWindow::OnTimer()
+{
+    t += dt;
+
+    RECT rect;
+    GetClientRect( windowHandle, &rect );
+    InvalidateRect( windowHandle, &rect, FALSE );
 }
 
 void COverlappedWindow::OnDestroy()
 {
-    DestroyWindow( handle );
+    KillTimer( windowHandle, timer );
+    DestroyWindow( windowHandle );
 }
 
-LRESULT COverlappedWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lPararm )
+LRESULT COverlappedWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
 {
-    return 0;
+    auto windowPtr = reinterpret_cast<COverlappedWindow*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
+
+    switch( message ) {
+        case WM_NCCREATE:
+        {
+            // TODO
+            windowPtr = static_cast<COverlappedWindow*>( 
+                reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams );
+            SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( windowPtr ) );
+            windowPtr->OnNCCreate( handle );
+            return DefWindowProc( handle, message, wParam, lParam );
+        }
+        case WM_CREATE:
+        {
+            windowPtr->OnCreate();
+            return EXIT_SUCCESS;
+        }
+        case WM_DESTROY:
+        {
+            windowPtr->OnDestroy();
+            return EXIT_SUCCESS;
+        }
+        case WM_PAINT:
+        {
+            windowPtr->OnPaint();
+            return EXIT_SUCCESS;
+        }
+        case WM_TIMER:
+        {
+            windowPtr->OnTimer();
+            return EXIT_SUCCESS;
+        }
+        default:
+            return DefWindowProc( handle, message, wParam, lParam );
+    }
 }
-
-

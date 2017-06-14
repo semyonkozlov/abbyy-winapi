@@ -1,4 +1,4 @@
-#define _SCL_SECURE_NO_WARNINGS // enable unsafe iterators for regex
+#define _SCL_SECURE_NO_WARNINGS // to enable unsafe iterators for std::regex_replace
 
 #include <iterator>
 #include <fstream>
@@ -19,7 +19,7 @@ CWorker::CWorker( const std::string& targetWordsFilename, int id ) : id( id )
         std::ostream_iterator<std::string>( regexStream, "|" ) );
     targetWordsFile.close();
 
-    targetWords = regexStream.str();
+    targetWords = "(" + regexStream.str() + ")";
  
     newTaskEvent = CreateEvent( nullptr, 
         FALSE,
@@ -70,7 +70,7 @@ void CWorker::Work()
                     fileView, 
                     fileView + std::strlen( fileView ),
                     targetWords, 
-                    "" ); 
+                    " " ); 
 
                 *filteredViewEnd = '\0';
 

@@ -1,3 +1,5 @@
+#define NOMINMAX // to enable std::min
+
 #include <cctype>
 #include <memory>
 #include <string>
@@ -6,7 +8,7 @@
 
 #include "TextFilter.h"
 
-#define ADD_ID( str, id ) (std::string(str) + std::to_string( id )).c_str()
+#define ADD_ID( str, id ) (std::string( str ) + std::to_string( id )).c_str()
 
 const std::string CTextFilter::workerExeFilename = "Worker.exe";
 
@@ -47,7 +49,6 @@ CTextFilter::CTextFilter( const std::string& targetWordsFilename, int numWorkers
 
         fileViews[i] = static_cast<char*>( MapViewOfFile( fileMaps[i], FILE_MAP_WRITE, 0, 0, 0 ) );
         assert( fileViews[i] != nullptr );
-        //CloseHandle( fileMappping ); // TODO mb do not close here?
            
         STARTUPINFO startupInfo;
         ZeroMemory( &startupInfo, sizeof( startupInfo ) );

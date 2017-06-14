@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#define NOMINMAX // to enable std::min
 #include <Windows.h>
 
 class CTextFilter {
