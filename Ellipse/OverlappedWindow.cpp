@@ -1,15 +1,14 @@
 #define NOMINMAX
 
-#include <algorithm>
-#include <cmath>
+#include <algorithm> 
 #include <cassert>
 
 #include "OverlappedWindow.h"
 
-const std::string COverlappedWindow::className = "Overlapped Window";
+const COverlappedWindow::CString COverlappedWindow::className = TEXT( "Overlapped Window" );
 const double COverlappedWindow::dt = 0.1;
 
-COverlappedWindow::COverlappedWindow( const std::string& windowName ) :
+COverlappedWindow::COverlappedWindow( const CString& windowName ) :
     windowHandle( nullptr ), windowName( windowName ), timer( 0 ), t( 0 )
 {
 }
@@ -76,29 +75,29 @@ void COverlappedWindow::OnPaint()
     RECT rect;
     GetClientRect( windowHandle, &rect );
 
-    HDC compatibleContext = CreateCompatibleDC( windowContext );
+    HDC bufferContext = CreateCompatibleDC( windowContext );
     HBITMAP windowBuffer = CreateCompatibleBitmap( windowContext, 
         rect.right - rect.left, 
         rect.bottom - rect.top );
 
-    HGDIOBJ oldWindowBuffer = SelectObject( compatibleContext, windowBuffer );
+    HGDIOBJ oldWindowBuffer = SelectObject( bufferContext, windowBuffer );
 
-    FillRect( compatibleContext, &rect, static_cast<HBRUSH>( GetStockObject( LTGRAY_BRUSH ) ) );
+    FillRect( bufferContext, &rect, static_cast<HBRUSH>( GetStockObject( LTGRAY_BRUSH ) ) );
     
     // drawing ellipse
     HPEN pen = CreatePen( PS_SOLID, 1, RGB( 0, 0, 0 ) );
-    HGDIOBJ oldPen = SelectObject( compatibleContext, pen );
+    HGDIOBJ oldPen = SelectObject( bufferContext, pen );
 
     HBRUSH brush = CreateSolidBrush( RGB( 255, 255, 255 ) );
-    HGDIOBJ oldBrush = SelectObject( compatibleContext, brush );
+    HGDIOBJ oldBrush = SelectObject( bufferContext, brush );
 
     int r = std::min( (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 ) - std::max( a, b );
     int x = (rect.left + rect.right) / 2 + r * std::cos( t );
     int y = (rect.top + rect.bottom) / 2 + r * std::sin( t );
-    Ellipse( compatibleContext, x - a, y - b, x + a, y + b );
+    Ellipse( bufferContext, x - a, y - b, x + a, y + b );
 
-    SelectObject( compatibleContext, oldPen );
-    SelectObject( compatibleContext, oldBrush );
+    SelectObject( bufferContext, oldPen );
+    SelectObject( bufferContext, oldBrush );
 
     DeleteObject( brush );
     DeleteObject( pen );
@@ -108,14 +107,14 @@ void COverlappedWindow::OnPaint()
         rect.top, 
         rect.right - rect.left, 
         rect.bottom - rect.top, 
-        compatibleContext, 
+        bufferContext, 
         0, 
         0,
         SRCCOPY );
 
-    SelectObject( compatibleContext, oldWindowBuffer );
+    SelectObject( bufferContext, oldWindowBuffer );
     DeleteObject( windowBuffer );
-    DeleteDC( compatibleContext );
+    DeleteDC( bufferContext );
     
     EndPaint( windowHandle, &paintStruct );
 }
@@ -156,6 +155,10 @@ LRESULT COverlappedWindow::windowProc( HWND handle, UINT message, WPARAM wParam,
         case WM_DESTROY:
         {
             windowPtr->OnDestroy();
+            return EXIT_SUCCESS;
+        }
+        case WM_ERASEBKGND:
+        {
             return EXIT_SUCCESS;
         }
         case WM_PAINT:

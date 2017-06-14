@@ -1,13 +1,14 @@
 #include <iostream>
 #include <cassert>
 
+#include <tchar.h>
 #include <Windows.h>
 
 #include "OverlappedWindow.h"
 
-int WINAPI wWinMain( HINSTANCE instance,
+int WINAPI _tWinMain( HINSTANCE instance,
     HINSTANCE prevInstance,
-    PWSTR cmdLine,
+    LPTSTR cmdLine,
     int cmdShow )
 {
     bool registerClassStatus = COverlappedWindow::RegisterClass();

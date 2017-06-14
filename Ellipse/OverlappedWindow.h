@@ -5,8 +5,10 @@
 #include <Windows.h>
 
 class COverlappedWindow {
+    using CString = std::basic_string<TCHAR, std::char_traits<TCHAR>, std::allocator<TCHAR>>;
+
 public:
-    COverlappedWindow( const std::string& windowName = "Ellipse" );
+    COverlappedWindow( const CString& windowName = TEXT( "Ellipse" ) );
 
     static bool RegisterClass();
 
@@ -21,12 +23,12 @@ protected:
     void OnDestroy();
 
 private:
-    static const std::string className;
+    static const CString className;
 
     static LRESULT CALLBACK windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam );
 
     HWND windowHandle;
-    std::string windowName;
+    CString windowName;
 
     UINT_PTR timer;
     static const int timerDelay = 50;
