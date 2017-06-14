@@ -6,7 +6,7 @@
 
 class COverlappedWindow {
 public:
-    COverlappedWindow( const std::string& windowName = "Main window" );
+    COverlappedWindow( const std::string& windowName = "Ellipse" );
 
     static bool RegisterClass();
 
@@ -29,8 +29,11 @@ private:
     std::string windowName;
 
     UINT_PTR timer;
+    static const int timerDelay = 50;
+
     double t;
     static const double dt;
 
-    static const int r = 40;
+    static const int a = 100;
+    static const int b = 50;
 };

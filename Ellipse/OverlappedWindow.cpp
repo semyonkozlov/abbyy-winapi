@@ -60,7 +60,7 @@ void COverlappedWindow::Show( int cmdShow ) const
 
 void COverlappedWindow::OnCreate()
 {
-    timer = SetTimer( windowHandle, 0, 50, nullptr );
+    timer = SetTimer( windowHandle, 0, timerDelay, nullptr );
 }
 
 void COverlappedWindow::OnNCCreate( HWND otherHandle )
@@ -83,19 +83,19 @@ void COverlappedWindow::OnPaint()
 
     HGDIOBJ oldWindowBuffer = SelectObject( compatibleContext, windowBuffer );
 
-    int r_ = std::min((rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2) - r;
-    int x = (rect.left + rect.right) / 2 + r_ * std::cos( t );
-    int y = (rect.top + rect.bottom) / 2 + r_ * std::sin( t );
-
-    FillRect( compatibleContext, &rect, static_cast<HBRUSH>( GetStockObject( GRAY_BRUSH ) ) );
+    FillRect( compatibleContext, &rect, static_cast<HBRUSH>( GetStockObject( LTGRAY_BRUSH ) ) );
     
-    // TODO: drawing ellipse
+    // drawing ellipse
     HPEN pen = CreatePen( PS_SOLID, 1, RGB( 0, 0, 0 ) );
     HGDIOBJ oldPen = SelectObject( compatibleContext, pen );
 
     HBRUSH brush = CreateSolidBrush( RGB( 255, 255, 255 ) );
     HGDIOBJ oldBrush = SelectObject( compatibleContext, brush );
-    Ellipse( compatibleContext, x - 2 * r, y - r, x + 2 * r, y + r );
+
+    int r = std::min( (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 ) - std::max( a, b );
+    int x = (rect.left + rect.right) / 2 + r * std::cos( t );
+    int y = (rect.top + rect.bottom) / 2 + r * std::sin( t );
+    Ellipse( compatibleContext, x - a, y - b, x + a, y + b );
 
     SelectObject( compatibleContext, oldPen );
     SelectObject( compatibleContext, oldBrush );
@@ -132,7 +132,7 @@ void COverlappedWindow::OnTimer()
 void COverlappedWindow::OnDestroy()
 {
     KillTimer( windowHandle, timer );
-    DestroyWindow( windowHandle );
+    PostQuitMessage( EXIT_SUCCESS );
 }
 
 LRESULT COverlappedWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
@@ -142,7 +142,6 @@ LRESULT COverlappedWindow::windowProc( HWND handle, UINT message, WPARAM wParam,
     switch( message ) {
         case WM_NCCREATE:
         {
-            // TODO
             windowPtr = static_cast<COverlappedWindow*>( 
                 reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams );
             SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( windowPtr ) );
