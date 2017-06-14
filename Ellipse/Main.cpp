@@ -4,6 +4,7 @@
 #include <tchar.h>
 #include <Windows.h>
 
+#include "EllipseWindow.h"
 #include "OverlappedWindow.h"
 
 int WINAPI _tWinMain( HINSTANCE instance,
@@ -11,6 +12,27 @@ int WINAPI _tWinMain( HINSTANCE instance,
     LPTSTR cmdLine,
     int cmdShow )
 {
+    /*
+    bool registerClassStatus = CEllipseWindow::RegisterClass();
+    assert( registerClassStatus != false );
+
+    CEllipseWindow window;
+    bool createStatus = window.Create();
+    assert( createStatus != false );
+
+    window.Show( cmdShow );
+
+    BOOL getMessageStatus = FALSE;
+    MSG message;
+    while( (getMessageStatus = GetMessage( &message, nullptr, 0, 0 )) != 0 ) {
+        assert( getMessageStatus != -1 );
+
+        TranslateMessage( &message );
+        DispatchMessage( &message );
+    }
+
+    return EXIT_SUCCESS;
+    */
     bool registerClassStatus = COverlappedWindow::RegisterClass();
     assert( registerClassStatus != false );
 
