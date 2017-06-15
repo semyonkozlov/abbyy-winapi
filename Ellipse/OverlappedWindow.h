@@ -17,10 +17,13 @@ public:
     bool Create();
     void Show( int cmdShow ) const;
 
+    HWND GetHandle() const noexcept;
+
 protected:
     void OnCreate();
     void OnSize();
     void OnDestroy();
+    void OnArrowKey( WPARAM wParam );
 
 private:
     static const CString className;

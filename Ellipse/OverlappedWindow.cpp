@@ -1,5 +1,6 @@
 #include <cassert>
 
+#include "Resource.h"
 #include "OverlappedWindow.h"
 
 const COverlappedWindow::CString COverlappedWindow::className = TEXT( "Overlapped Window" );
@@ -57,6 +58,11 @@ void COverlappedWindow::Show( int cmdShow ) const
     }
 }
 
+HWND COverlappedWindow::GetHandle() const noexcept
+{
+    return windowHandle;    
+}
+
 void COverlappedWindow::OnCreate()
 {
     CEllipseWindow::RegisterClass();
@@ -88,6 +94,39 @@ void COverlappedWindow::OnDestroy()
     PostQuitMessage( EXIT_SUCCESS );
 }
 
+void COverlappedWindow::OnArrowKey( WPARAM wParam )
+{
+    HWND currentFocus = GetFocus();
+
+    int activeWindowId = 0;
+    for( activeWindowId = 0; activeWindowId < numChildren; ++activeWindowId ) {
+        if( currentFocus == childWindows[activeWindowId].GetHandle() ) {
+            break;
+        }
+    }
+    if( activeWindowId >= numChildren ) {
+        return;
+    }
+
+    HWND newFocus = nullptr;
+    switch( LOWORD( wParam ) ) {
+        case ID_UP:
+        case ID_DOWN:
+            newFocus = childWindows[(activeWindowId + 2) % numChildren].GetHandle();
+            break;
+        case ID_LEFT:
+            newFocus = childWindows[(activeWindowId - 1) % numChildren].GetHandle();
+            break;
+        case ID_RIGHT:
+            newFocus = childWindows[(activeWindowId + 1) % numChildren].GetHandle();
+            break;
+        default:
+            return;
+    }
+
+    SetFocus( newFocus );
+}
+
 LRESULT COverlappedWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
 {   
     auto windowPtr = reinterpret_cast<COverlappedWindow*>(GetWindowLongPtr( handle, GWLP_USERDATA ));
@@ -100,6 +139,11 @@ LRESULT COverlappedWindow::windowProc( HWND handle, UINT message, WPARAM wParam,
             SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(windowPtr) );
             windowPtr->windowHandle = handle;
             return DefWindowProc( handle, message, wParam, lParam );
+        }
+        case WM_COMMAND:
+        {
+            windowPtr->OnArrowKey( wParam );
+            return EXIT_SUCCESS;
         }
         case WM_CREATE:
         {
