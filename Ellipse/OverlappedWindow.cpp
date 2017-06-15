@@ -42,7 +42,6 @@ bool COverlappedWindow::Create()
         nullptr,
         GetModuleHandle( nullptr ),
         this );
-
     assert( windowHandle != nullptr );
 
     return windowHandle;
@@ -66,6 +65,7 @@ HWND COverlappedWindow::GetHandle() const noexcept
 void COverlappedWindow::OnCreate()
 {
     CEllipseWindow::RegisterClass();
+
     for( auto&& childWindow : childWindows ) {
         childWindow.Create( windowHandle );
     }
@@ -79,14 +79,32 @@ void COverlappedWindow::OnSize()
     int childWidth = (rect.right - rect.left) / 2;
     int childHeight = (rect.bottom - rect.top) / 2;
 
-    SetWindowPos( childWindows[0].GetHandle(), HWND_TOP,
-        rect.left, rect.top, childWidth, childHeight, 0 );
-    SetWindowPos( childWindows[1].GetHandle(), HWND_TOP,
-        (rect.left + rect.right) / 2, rect.top, childWidth, childHeight, 0 );
-    SetWindowPos( childWindows[2].GetHandle(), HWND_TOP, 
-        rect.left, (rect.top + rect.bottom) / 2, childWidth, childHeight, 0 );
-    SetWindowPos( childWindows[3].GetHandle(), HWND_TOP, 
-        (rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2, childWidth, childHeight, 0 );
+    int rectCenterX = (rect.left + rect.right) / 2;
+    int rectCenterY = (rect.top + rect.bottom) / 2;
+
+    SetWindowPos( 
+        childWindows[0].GetHandle(), HWND_TOP,
+        rect.left, rect.top,
+        childWidth, childHeight, 
+        0 );
+
+    SetWindowPos(  
+        childWindows[1].GetHandle(), HWND_TOP, 
+        rectCenterX, rect.top,
+        childWidth, childHeight, 
+        0 );
+
+    SetWindowPos(
+        childWindows[2].GetHandle(), HWND_TOP,
+        rect.left, rectCenterY,
+        childWidth, childHeight, 
+        0 );
+
+    SetWindowPos( 
+        childWindows[3].GetHandle(), HWND_TOP, 
+        rectCenterX, rectCenterY, 
+        childWidth, childHeight, 
+        0 );
 }
 
 void COverlappedWindow::OnDestroy()
@@ -99,7 +117,7 @@ void COverlappedWindow::OnArrowKey( WPARAM wParam )
     HWND currentFocus = GetFocus();
 
     int activeWindowId = 0;
-    for( activeWindowId = 0; activeWindowId < numChildren; ++activeWindowId ) {
+    for( ; activeWindowId < numChildren; ++activeWindowId ) {
         if( currentFocus == childWindows[activeWindowId].GetHandle() ) {
             break;
         }
