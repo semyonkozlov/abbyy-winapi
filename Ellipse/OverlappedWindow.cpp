@@ -115,7 +115,7 @@ void COverlappedWindow::OnArrowKey( WPARAM wParam )
             newFocus = childWindows[(activeWindowId + 2) % numChildren].GetHandle();
             break;
         case ID_LEFT:
-            newFocus = childWindows[(activeWindowId - 1) % numChildren].GetHandle();
+            newFocus = childWindows[(activeWindowId + 3) % numChildren].GetHandle();
             break;
         case ID_RIGHT:
             newFocus = childWindows[(activeWindowId + 1) % numChildren].GetHandle();
