@@ -20,8 +20,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{EAF4B9A9-FC87-41ED-9E9E-7401D36FCDB7}</ProjectGuid>
-    <RootNamespace>TextFilter</RootNamespace>
+    <ProjectGuid>{779DB9AB-05A8-4487-9045-7AC2AD71BEDA}</ProjectGuid>
+    <RootNamespace>CountWords</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -112,10 +112,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="TextFilter.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="TextFilter.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
