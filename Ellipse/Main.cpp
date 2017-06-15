@@ -12,8 +12,7 @@ int WINAPI _tWinMain( HINSTANCE instance,
     LPTSTR cmdLine,
     int cmdShow )
 {
-    /*
-    bool registerClassStatus = CEllipseWindow::RegisterClass();
+    /*bool registerClassStatus = CEllipseWindow::RegisterClass();
     assert( registerClassStatus != false );
 
     CEllipseWindow window;
@@ -31,8 +30,8 @@ int WINAPI _tWinMain( HINSTANCE instance,
         DispatchMessage( &message );
     }
 
-    return EXIT_SUCCESS;
-    */
+    return EXIT_SUCCESS;*/
+
     bool registerClassStatus = COverlappedWindow::RegisterClass();
     assert( registerClassStatus != false );
 

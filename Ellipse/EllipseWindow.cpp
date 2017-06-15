@@ -85,7 +85,7 @@ void CEllipseWindow::OnCreate()
 void CEllipseWindow::OnPaint()
 { 
     PAINTSTRUCT paintStruct;
-    HDC windowContext = BeginPaint( windowHandle, nullptr );
+    HDC windowContext = BeginPaint( windowHandle, &paintStruct );
 
     RECT rect;
     GetClientRect( windowHandle, &rect );
@@ -103,7 +103,8 @@ void CEllipseWindow::OnPaint()
     HPEN pen = CreatePen( PS_SOLID, 1, RGB( 0, 0, 0 ) );
     HGDIOBJ oldPen = SelectObject( bufferContext, pen );
 
-    HBRUSH brush = CreateSolidBrush( RGB( 255, 255, 255 ) );
+    const int numPalettes = 16;
+    HBRUSH brush = CreateSolidBrush( PALETTEINDEX( int( t ) % numPalettes ) );
     HGDIOBJ oldBrush = SelectObject( bufferContext, brush );
 
     int r = std::min( (rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2 ) - std::max( a, b );
