@@ -12,20 +12,20 @@ COverlappedWindow::COverlappedWindow( const CString& windowName ) :
 
 bool COverlappedWindow::RegisterClass()
 {
-    WNDCLASS wcx;
+    WNDCLASS windowClass;
 
-    wcx.style = CS_HREDRAW | CS_VREDRAW;
-    wcx.lpfnWndProc = windowProc;
-    wcx.cbClsExtra = 0;
-    wcx.cbWndExtra = 0;
-    wcx.hInstance = GetModuleHandle( nullptr );
-    wcx.hIcon = LoadIcon( nullptr, IDI_APPLICATION );
-    wcx.hCursor = LoadCursor( nullptr, IDC_ARROW );
-    wcx.hbrBackground = reinterpret_cast<HBRUSH>( COLOR_WINDOW + 1 );
-    wcx.lpszMenuName = nullptr;
-    wcx.lpszClassName = className.c_str();
+    windowClass.style = CS_HREDRAW | CS_VREDRAW;
+    windowClass.lpfnWndProc = windowProc;
+    windowClass.cbClsExtra = 0;
+    windowClass.cbWndExtra = 0;
+    windowClass.hInstance = GetModuleHandle( nullptr );
+    windowClass.hIcon = LoadIcon( nullptr, IDI_APPLICATION );
+    windowClass.hCursor = LoadCursor( nullptr, IDC_ARROW );
+    windowClass.hbrBackground = reinterpret_cast<HBRUSH>( COLOR_WINDOW + 1 );
+    windowClass.lpszMenuName = nullptr;
+    windowClass.lpszClassName = className.c_str();
 
-    return ::RegisterClass( &wcx );
+    return ::RegisterClass( &windowClass );
 }
 
 bool COverlappedWindow::Create()
@@ -147,14 +147,14 @@ void COverlappedWindow::OnArrowKey( WPARAM wParam )
 
 LRESULT COverlappedWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
 {   
-    auto windowPtr = reinterpret_cast<COverlappedWindow*>(GetWindowLongPtr( handle, GWLP_USERDATA ));
+    auto windowPtr = reinterpret_cast<COverlappedWindow*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
 
     switch( message ) {
         case WM_NCCREATE:
         {
             windowPtr = static_cast<COverlappedWindow*>(
-                reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams);
-            SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(windowPtr) );
+                reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams);
+            SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( windowPtr ) );
             windowPtr->windowHandle = handle;
             return DefWindowProc( handle, message, wParam, lParam );
         }
