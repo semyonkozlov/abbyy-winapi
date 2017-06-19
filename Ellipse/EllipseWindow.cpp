@@ -65,7 +65,6 @@ bool CEllipseWindow::Create( HWND parentHandle )
         nullptr,
         GetModuleHandle( nullptr ),
         this );
-
     assert( windowHandle != nullptr );
 
     return windowHandle;

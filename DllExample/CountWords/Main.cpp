@@ -11,7 +11,7 @@ const wchar_t* LibPath = L"WordsCountDll.dll";
 int main( int argc, char* argv[] )
 {
     HMODULE wordsCountDll = LoadLibrary( LibPath );
-    auto wordsCount = reinterpret_cast<int( *)( const wchar_t* )>( GetProcAddress( wordsCountDll, "WordsCount" ) );
+    auto wordsCount = reinterpret_cast<int(*)( const wchar_t* )>( GetProcAddress( wordsCountDll, "WordsCount" ) );
 
     int argCount;
     LPWSTR* argVector = CommandLineToArgvW( GetCommandLine(), &argCount );

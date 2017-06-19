@@ -1,17 +1,16 @@
 #include <iostream>
 #include <cassert>
 
-#include <tchar.h>
+#include <Tchar.h>
 #include <Windows.h>
 
 #include "EllipseWindow.h"
 #include "OverlappedWindow.h"
 #include "Resource.h"
 
-int WINAPI _tWinMain( HINSTANCE instance,
-    HINSTANCE prevInstance,
-    LPTSTR cmdLine,
-    int cmdShow )
+int WINAPI _tWinMain( 
+    HINSTANCE instance, HINSTANCE prevInstance,
+    LPTSTR cmdLine, int cmdShow )
 {
     /*bool registerClassStatus = CEllipseWindow::RegisterClass();
     assert( registerClassStatus != false );

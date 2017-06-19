@@ -6,7 +6,7 @@
 
 class CTextFilter {
 public:
-    CTextFilter( const std::string& targetWordsFilename, int numWorkers = 4 );
+    explicit CTextFilter( const std::string& targetWordsFilename, int numWorkers = 4 );
     ~CTextFilter();
 
     void Filter( const std::string& inputFilename, const std::string& outputFilename );

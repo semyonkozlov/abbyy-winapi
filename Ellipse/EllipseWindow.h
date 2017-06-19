@@ -8,8 +8,8 @@ class CEllipseWindow {
     using CString = std::basic_string<TCHAR, std::char_traits<TCHAR>, std::allocator<TCHAR>>;
 
 public:
-    CEllipseWindow( const CString& windowName = TEXT( "Ellipse" ) );
-
+    explicit CEllipseWindow( const CString& windowName = TEXT( "Ellipse" ) );
+    
     static bool RegisterClass();
 
     bool Create();
