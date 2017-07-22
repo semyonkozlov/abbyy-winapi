@@ -19,7 +19,7 @@ protected:
     void OnCreate();
     void OnSize();
     void OnCommand( WPARAM wParam, LPARAM lParam );
-    int OnClose();
+    bool OnClose( );
     void OnDestroy();
     
 private:
@@ -32,4 +32,6 @@ private:
     HWND mainWindow;
     HWND editControl;
     HWND dialog;
+
+    bool hasInput;
 };

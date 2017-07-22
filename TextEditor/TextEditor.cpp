@@ -10,8 +10,9 @@ const CTextEditor::CString CTextEditor::className = TEXT( "TEXTEDITOR" );
 CTextEditor::CTextEditor( const CString& windowName ) :
     windowName( windowName ),
     mainWindow( nullptr ),
-    editControl( nullptr ), 
-    dialog( nullptr )
+    editControl( nullptr ),
+    dialog( nullptr ),
+    hasInput( false )
 {
 }
 
@@ -91,15 +92,44 @@ void CTextEditor::OnSize()
 
 void CTextEditor::OnCommand( WPARAM wParam, LPARAM lParam )
 {
+    switch( HIWORD( wParam ) ) {
+        case EN_CHANGE:
+        {
+            hasInput = true;
+            break;
+        }
+        default:
+        {
+            return;
+        }
+    }
 }
 
-int CTextEditor::OnClose()
+bool CTextEditor::OnClose( )
 {
-    return MessageBox(
-        mainWindow,
-        TEXT( "Quit?" ),
-        TEXT( "Quit?" ),
-        MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2 );
+    if( hasInput ) {
+        int messageBoxId = MessageBox(
+            mainWindow,
+            TEXT( "Quit?" ),
+            TEXT( "Quit?" ),
+            MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2 );
+
+        switch( messageBoxId ) {
+            case IDYES:
+            {
+                return true;
+            }
+            case IDNO:
+            {
+                return false;
+            }
+            default:
+            {
+                return true;
+            }
+        }
+    }
+    return true;
 }
 
 void CTextEditor::OnDestroy()
@@ -137,8 +167,8 @@ LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARA
         }
         case WM_CLOSE:
         {
-            int msgBoxId = windowPtr->OnClose();
-            if( msgBoxId == IDYES ) {
+            bool shouldClose = windowPtr->OnClose();
+            if( shouldClose ) {
                 return DefWindowProc( handle, message, wParam, lParam );
             }
             else {
