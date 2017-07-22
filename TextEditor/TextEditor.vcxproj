@@ -20,8 +20,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{1DFAC9C5-EC2F-4C8A-9E3B-C347A69A772E}</ProjectGuid>
-    <RootNamespace>VMMap</RootNamespace>
+    <ProjectGuid>{11917610-53AA-4CEC-9F92-06C17B349509}</ProjectGuid>
+    <RootNamespace>TextEditor</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -111,24 +111,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Converter.cpp" />
+    <ClInclude Include="TextEditor.h" />
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="MemoryViewer.cpp" />
-    <ClCompile Include="Utils.cpp" />
-    <ClCompile Include="VmmapWindow.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Converter.h" />
-    <ClInclude Include="MemoryViewer.h" />
-    <ClInclude Include="Resource.h" />
-    <ClInclude Include="Utils.h" />
-    <ClInclude Include="VmmapWindow.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="VMMap.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="VMMap.ico" />
+    <ClCompile Include="TextEditor.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

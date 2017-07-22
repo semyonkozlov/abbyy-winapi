@@ -8,16 +8,11 @@ CMemoryInfo::CMemoryInfo()
     ZeroMemory( this, sizeof( CMemoryInfo ) );
 }
 
-CRegionInfo::CRegionInfo()
-{
-    ZeroMemory( this, sizeof( CRegionInfo ) );
-}
-
 CMemoryViewer::CMemoryViewer( HANDLE processHandle ) : processHandle( nullptr )
 {
 }
 
-CMemoryInfo CMemoryViewer::GetMemoryInfo( const void* memory )
+CMemoryInfo CMemoryViewer::GetMemoryInfo( const void* memory ) const
 {
     CMemoryInfo memoryInfo{};
 
@@ -32,7 +27,7 @@ CMemoryInfo CMemoryViewer::GetMemoryInfo( const void* memory )
         throw std::runtime_error( "Fail obtaining memory information" ); // TODO
     }
 
-    CRegionInfo regionInfo{};
+    // TODO
     switch( blockInfo.State ) {
         case MEM_FREE:
         {
@@ -52,38 +47,21 @@ CMemoryInfo CMemoryViewer::GetMemoryInfo( const void* memory )
         }
         case MEM_RESERVE:
         {
-            // TODO
-            regionInfo = GetRegionInfo( memory );
-
-            memoryInfo.RegionBaseAddress = blockInfo.AllocationBase ;
-            memoryInfo.RegionProtection = blockInfo.AllocationProtect;
-            memoryInfo.RegionSize = regionInfo.RegionSize;
-            memoryInfo.RegionType = regionInfo.RegionType;
-            memoryInfo.NumBlocks = regionInfo.NumBlocks;
-            memoryInfo.NumGuardedBlocks = regionInfo.NumGuardedBlocks;
-            memoryInfo.IsStack = regionInfo.IsStack;
+            getRegionInfo( blockInfo.AllocationBase, memoryInfo );
 
             memoryInfo.BlockBaseAddress = blockInfo.BaseAddress;
-            memoryInfo.BlockSize = blockInfo.RegionSize;
             memoryInfo.BlockProtection = blockInfo.AllocationProtect;
+            memoryInfo.BlockSize = blockInfo.RegionSize;
             memoryInfo.BlockType = MEM_RESERVE;
             break;
         }
         case MEM_COMMIT:
         {
-            regionInfo = GetRegionInfo( memory );
-
-            memoryInfo.RegionBaseAddress = blockInfo.AllocationBase;
-            memoryInfo.RegionProtection = blockInfo.AllocationProtect;
-            memoryInfo.RegionSize = regionInfo.RegionSize;
-            memoryInfo.RegionType = regionInfo.RegionType;
-            memoryInfo.NumBlocks = regionInfo.NumBlocks;
-            memoryInfo.NumGuardedBlocks = regionInfo.NumGuardedBlocks;
-            memoryInfo.IsStack = regionInfo.IsStack;
+            getRegionInfo( blockInfo.AllocationBase, memoryInfo );
 
             memoryInfo.BlockBaseAddress = blockInfo.BaseAddress;
-            memoryInfo.BlockSize = blockInfo.RegionSize;
             memoryInfo.BlockProtection = blockInfo.Protect;
+            memoryInfo.BlockSize = blockInfo.RegionSize;
             memoryInfo.BlockType = blockInfo.Type;
             break;
         }
@@ -97,46 +75,32 @@ CMemoryInfo CMemoryViewer::GetMemoryInfo( const void* memory )
     return memoryInfo;
 }
 
-CRegionInfo CMemoryViewer::GetRegionInfo( const void* memory ) const
+void CMemoryViewer::getRegionInfo( const void* regionBaseAddress, CMemoryInfo& memoryInfo ) const
 {
-    CRegionInfo regionInfo{};
-
     MEMORY_BASIC_INFORMATION blockInfo;
-    auto queryStatus = VirtualQueryEx( 
-        processHandle,
-        memory, 
-        &blockInfo, 
-        sizeof( blockInfo ) );
-
-    if( queryStatus != sizeof( blockInfo ) ) {
-        throw std::runtime_error( "Fail obtaining memory information" ); // TODO
-    }
-
-    BYTE* regionBaseAddress = static_cast<BYTE*>( blockInfo.AllocationBase );
-    BYTE* currentBlockAddress = regionBaseAddress;
+    const BYTE* currentBlockAddress = static_cast<const BYTE*>( regionBaseAddress );
 
     // while in the same region
-    while( blockInfo.AllocationBase == regionBaseAddress ) {
-        queryStatus = VirtualQueryEx( processHandle, currentBlockAddress, &blockInfo, sizeof( blockInfo ) );
-        if( queryStatus != sizeof( blockInfo) ) {
+    do {
+        auto queryStatus = VirtualQueryEx( processHandle, currentBlockAddress, &blockInfo, sizeof( blockInfo ) );
+        if( queryStatus != sizeof( blockInfo ) ) {
             break;
         }
 
-        ++regionInfo.NumBlocks;
-        regionInfo.RegionSize += blockInfo.RegionSize;
+        ++memoryInfo.NumBlocks;
+        memoryInfo.RegionSize += blockInfo.RegionSize;
 
-        if(( blockInfo.Protect & PAGE_GUARD) == PAGE_GUARD ) {
-            ++regionInfo.NumGuardedBlocks;
+        if( (blockInfo.Protect & PAGE_GUARD) == PAGE_GUARD ) {
+            ++memoryInfo.NumGuardedBlocks;
         }
-
-        if( regionInfo.RegionType == MEM_PRIVATE ) {
-            regionInfo.RegionType = blockInfo.Type;
+        
+        // TODO
+        if( memoryInfo.RegionType == MEM_PRIVATE ) {
+            memoryInfo.RegionType = blockInfo.Type;
         }
 
         currentBlockAddress += blockInfo.RegionSize;
-    }
+    } while( blockInfo.AllocationBase == regionBaseAddress );
 
-    regionInfo.IsStack = regionInfo.NumGuardedBlocks > 0;
-
-    return regionInfo;
+    memoryInfo.IsStack = memoryInfo.NumGuardedBlocks > 0;
 }

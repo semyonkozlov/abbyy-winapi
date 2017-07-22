@@ -5,7 +5,7 @@
 
 #include "EllipseWindow.h"
 
-const CEllipseWindow::CString CEllipseWindow::className = TEXT( "Ellipse Window" );
+const CEllipseWindow::CString CEllipseWindow::className = TEXT( "ELLIPSE" );
 const double CEllipseWindow::dt = 0.1;
 
 CEllipseWindow::CEllipseWindow( const CString& windowName ) :
@@ -113,7 +113,6 @@ void CEllipseWindow::OnPaint()
 
     SelectObject( bufferContext, oldPen );
     SelectObject( bufferContext, oldBrush );
-
     DeleteObject( brush );
     DeleteObject( pen );
 

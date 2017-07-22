@@ -5,7 +5,7 @@
 #include <Windows.h>
 
 class CEllipseWindow {
-    using CString = std::basic_string<TCHAR, std::char_traits<TCHAR>, std::allocator<TCHAR>>;
+    using CString = std::basic_string<TCHAR>;
 
 public:
     explicit CEllipseWindow( const CString& windowName = TEXT( "Ellipse" ) );

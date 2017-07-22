@@ -19,24 +19,15 @@ struct CMemoryInfo {
     DWORD BlockType;
 };
 
-struct CRegionInfo {
-    CRegionInfo();
-
-    int RegionSize;
-    DWORD RegionType;
-    int NumBlocks;
-    int NumGuardedBlocks;
-    bool IsStack;
-};
-
 class CMemoryViewer {
 public:
+    CMemoryViewer() = default;
     explicit CMemoryViewer( HANDLE processHandle );
 
-    CMemoryInfo GetMemoryInfo( const void* memory );
-    CRegionInfo GetRegionInfo( const void* memory ) const;
+    CMemoryInfo GetMemoryInfo( const void* memory ) const;
 
 private:
+    void getRegionInfo( const void* regionBaseAddress, CMemoryInfo& memoryInfo ) const;
 
     static const struct CSystemInfo : SYSTEM_INFO {
         CSystemInfo()

@@ -3,7 +3,7 @@
 #include "Resource.h"
 #include "OverlappedWindow.h"
 
-const COverlappedWindow::CString COverlappedWindow::className = TEXT( "Overlapped Window" );
+const COverlappedWindow::CString COverlappedWindow::className = TEXT( "OVERLAPPED" );
 
 COverlappedWindow::COverlappedWindow( const CString& windowName ) :
     windowHandle( nullptr ), windowName( windowName ), childWindows( numChildren )

@@ -1,38 +1,35 @@
 #pragma once
 
-#include <vector>
+#include <string>
 
 #include <Windows.h>
 
-#include "EllipseWindow.h"
-
-class COverlappedWindow {
+class CTextEditor {
     using CString = std::basic_string<TCHAR>;
 
 public:
-    explicit COverlappedWindow( const CString& windowName = TEXT( "Overlapped Window" ) );
+    explicit CTextEditor( const CString& windowName = TEXT( "Text Editor" ) );
 
     static bool RegisterClass();
 
     bool Create();
     void Show( int cmdShow ) const;
 
-    HWND GetHandle() const noexcept;
-
 protected:
     void OnCreate();
     void OnSize();
+    void OnCommand( WPARAM wParam, LPARAM lParam );
+    int OnClose();
     void OnDestroy();
-    void OnArrowKey( WPARAM wParam );
-
+    
 private:
     static const CString className;
 
     static LRESULT CALLBACK windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam );
 
-    HWND windowHandle;
     CString windowName;
 
-    std::vector<CEllipseWindow> childWindows;
-    static const int numChildren = 4;
+    HWND mainWindow;
+    HWND editControl;
+    HWND dialog;
 };
