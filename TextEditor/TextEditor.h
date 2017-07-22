@@ -8,7 +8,7 @@ class CTextEditor {
     using CString = std::basic_string<TCHAR>;
 
 public:
-    explicit CTextEditor( const CString& windowName = TEXT( "Text Editor" ) );
+    explicit CTextEditor( const CString& windowName = TEXT( "TextEditor" ) );
 
     static bool RegisterClass();
 
@@ -34,4 +34,6 @@ private:
     HWND dialog;
 
     bool hasInput;
+
+    void saveInput() const;
 };

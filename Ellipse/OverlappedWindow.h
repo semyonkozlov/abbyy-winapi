@@ -10,7 +10,7 @@ class COverlappedWindow {
     using CString = std::basic_string<TCHAR>;
 
 public:
-    explicit COverlappedWindow( const CString& windowName = TEXT( "Overlapped Window" ) );
+    explicit COverlappedWindow( const CString& windowName = TEXT( "OverlappedWindow" ) );
 
     static bool RegisterClass();
 

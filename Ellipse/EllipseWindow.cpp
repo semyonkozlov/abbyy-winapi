@@ -159,17 +159,17 @@ void CEllipseWindow::OnLButtonDown()
 
 LRESULT CEllipseWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
 {
-    auto windowPtr = reinterpret_cast<CEllipseWindow*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
+    CEllipseWindow* windowPtr;
+    if( message == WM_NCCREATE ) {
+        windowPtr = static_cast<CEllipseWindow*>(
+            reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams );
+        SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( windowPtr ) );
+        windowPtr->windowHandle = handle;
+        return DefWindowProc( handle, message, wParam, lParam );
+    }
 
+    windowPtr = reinterpret_cast<CEllipseWindow*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
     switch( message ) {
-        case WM_NCCREATE:
-        {
-            windowPtr = static_cast<CEllipseWindow*>( 
-                reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams );
-            SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( windowPtr ) );
-            windowPtr->windowHandle = handle;
-            return DefWindowProc( handle, message, wParam, lParam );
-        }
         case WM_CREATE:
         {
             windowPtr->OnCreate();

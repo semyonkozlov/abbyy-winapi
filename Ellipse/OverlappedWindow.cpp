@@ -147,17 +147,18 @@ void COverlappedWindow::OnArrowKey( WPARAM wParam )
 
 LRESULT COverlappedWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
 {   
-    auto windowPtr = reinterpret_cast<COverlappedWindow*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
-
+    COverlappedWindow* windowPtr;
+    if( message == WM_NCCREATE )
+     {
+         windowPtr = static_cast<COverlappedWindow*>(
+             reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams );
+         SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( windowPtr ) );
+         windowPtr->windowHandle = handle;
+         return DefWindowProc( handle, message, wParam, lParam );
+     }
+    
+    windowPtr = reinterpret_cast<COverlappedWindow*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
     switch( message ) {
-        case WM_NCCREATE:
-        {
-            windowPtr = static_cast<COverlappedWindow*>(
-                reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams);
-            SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( windowPtr ) );
-            windowPtr->windowHandle = handle;
-            return DefWindowProc( handle, message, wParam, lParam );
-        }
         case WM_COMMAND:
         {
             windowPtr->OnArrowKey( wParam );

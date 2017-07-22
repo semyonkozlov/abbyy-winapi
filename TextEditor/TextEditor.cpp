@@ -110,16 +110,21 @@ bool CTextEditor::OnClose( )
     if( hasInput ) {
         int messageBoxId = MessageBox(
             mainWindow,
-            TEXT( "Quit?" ),
-            TEXT( "Quit?" ),
-            MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2 );
+            TEXT( "Do you want to save changes?" ),
+            windowName.c_str(),
+            MB_YESNOCANCEL | MB_ICONQUESTION | MB_DEFBUTTON1 );
 
         switch( messageBoxId ) {
             case IDYES:
             {
+                saveInput();
                 return true;
             }
             case IDNO:
+            {
+                return true;
+            }
+            case IDCANCEL:
             {
                 return false;
             }
@@ -139,17 +144,17 @@ void CTextEditor::OnDestroy()
 
 LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
 {
-    auto windowPtr = reinterpret_cast<CTextEditor*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
-
+    CTextEditor* windowPtr;
+    if( message == WM_NCCREATE ) {
+        windowPtr = static_cast<CTextEditor*>(
+            reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams );
+        SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( windowPtr ) );
+        windowPtr->mainWindow = handle;
+        return DefWindowProc( handle, message, wParam, lParam );
+    }
+   
+    windowPtr = reinterpret_cast<CTextEditor*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
     switch( message ) {
-        case WM_NCCREATE:
-        {
-            windowPtr = static_cast<CTextEditor*>(
-                reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams);
-            SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(windowPtr) );
-            windowPtr->mainWindow = handle;
-            return DefWindowProc( handle, message, wParam, lParam );
-        }
         case WM_CREATE:
         {
             windowPtr->OnCreate();
@@ -171,9 +176,8 @@ LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARA
             if( shouldClose ) {
                 return DefWindowProc( handle, message, wParam, lParam );
             }
-            else {
-                return EXIT_SUCCESS;
-            }
+
+            return EXIT_SUCCESS;
         }
         case WM_DESTROY:
         {
@@ -184,5 +188,37 @@ LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARA
         {
             return DefWindowProc( handle, message, wParam, lParam );
         }
+    }
+}
+
+void CTextEditor::saveInput() const
+{
+    int textLength = GetWindowTextLength( editControl );
+    CString text( textLength + 1, TEXT( '\0' ) );
+
+    GetWindowText( editControl, const_cast<PTCHAR>( text.data() ), text.length() );
+
+    const int maxFileNameLength = 256;
+    CString fileName( maxFileNameLength + 1, TEXT( '\0' ) );
+
+    OPENFILENAME fileNameStruct; 
+    ZeroMemory( &fileNameStruct, sizeof( OPENFILENAME ) );
+    fileNameStruct.lStructSize = sizeof( OPENFILENAME );
+    fileNameStruct.hwndOwner = mainWindow;
+    fileNameStruct.lpstrFile = const_cast<PTCHAR>( fileName.data() );
+    fileNameStruct.nMaxFile = maxFileNameLength;
+
+    if( GetSaveFileName( &fileNameStruct ) != 0 ) {
+        HANDLE file = CreateFile(
+            fileName.c_str(),
+            GENERIC_WRITE,
+            0,
+            nullptr,
+            OPEN_ALWAYS,
+            FILE_ATTRIBUTE_NORMAL,
+            nullptr );
+
+        WriteFile( file, text.c_str(), textLength * sizeof( TCHAR ), nullptr, nullptr );
+        CloseHandle( file );
     }
 }
