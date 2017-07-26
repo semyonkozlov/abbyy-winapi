@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <WinUser.h>
 
+#include "Resource.h"
 #include "TextEditor.h"
 
 const CTextEditor::CString CTextEditor::className = TEXT( "TEXTEDITOR" );
@@ -27,6 +28,7 @@ bool CTextEditor::RegisterClass()
     windowClass.hIcon = LoadIcon( nullptr, IDI_APPLICATION );
     windowClass.hCursor = LoadCursor( nullptr, IDC_ARROW );
     windowClass.hbrBackground = reinterpret_cast<HBRUSH>( COLOR_WINDOW + 1 );
+    windowClass.lpszMenuName = MAKEINTRESOURCE( IDR_MENU );
     windowClass.lpszClassName = className.c_str();
 
     return ::RegisterClass( &windowClass );
@@ -98,7 +100,20 @@ void CTextEditor::OnCommand( WPARAM wParam, LPARAM lParam )
             hasInput = true;
             break;
         }
-        default:
+    }
+
+    switch( LOWORD( wParam ) ) {
+        case ID_FILE_SAVE:
+        {
+            saveInput();
+            return;
+        }
+        case ID_FILE_EXIT:
+        {
+            SendMessage( mainWindow, WM_CLOSE, 0, 0 );
+            return;
+        }
+        case ID_VIEW_SETTINGS:
         {
             return;
         }
@@ -117,8 +132,7 @@ bool CTextEditor::OnClose( )
         switch( messageBoxId ) {
             case IDYES:
             {
-                saveInput();
-                return true;
+                return saveInput();
             }
             case IDNO:
             {
@@ -191,7 +205,7 @@ LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARA
     }
 }
 
-void CTextEditor::saveInput() const
+bool CTextEditor::saveInput() const
 {
     int textLength = GetWindowTextLength( editControl );
     CString text( textLength + 1, TEXT( '\0' ) );
@@ -220,5 +234,9 @@ void CTextEditor::saveInput() const
 
         WriteFile( file, text.c_str(), textLength * sizeof( TCHAR ), nullptr, nullptr );
         CloseHandle( file );
+
+        return true;
     }
+
+    return false;
 }

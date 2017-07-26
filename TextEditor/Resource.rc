@@ -1,0 +1,17 @@
+#include <winres.h>
+
+#include "Resource.h"
+
+IDR_MENU MENU
+BEGIN
+  POPUP "&File"
+  BEGIN
+    MENUITEM "&Save", ID_FILE_SAVE
+    MENUITEM "&Exit", ID_FILE_EXIT
+  END
+
+  POPUP "&View"
+  BEGIN
+    MENUITEM "&Settings", ID_VIEW_SETTINGS
+  END
+END

@@ -35,5 +35,5 @@ private:
 
     bool hasInput;
 
-    void saveInput() const;
+    bool saveInput() const;
 };
