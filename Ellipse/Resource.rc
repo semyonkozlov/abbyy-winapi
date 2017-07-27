@@ -1,12 +1,11 @@
-#include <winres.h>
+#include <WinRes.h>
 
 #include "Resource.h"
 
 IDR_ACCEL ACCELERATORS
 {
-    VK_UP, ID_UP, VIRTKEY, NOINVERT  
+    VK_UP, ID_UP, VIRTKEY, NOINVERT
     VK_RIGHT, ID_RIGHT, VIRTKEY, NOINVERT
     VK_DOWN, ID_DOWN, VIRTKEY, NOINVERT
     VK_LEFT, ID_LEFT, VIRTKEY, NOINVERT
 }
-

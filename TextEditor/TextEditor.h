@@ -27,6 +27,8 @@ private:
 
     static LRESULT CALLBACK windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam );
 
+    static INT_PTR CALLBACK settingsDialogProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam );
+
     CString windowName;
 
     HWND mainWindow;

@@ -115,6 +115,11 @@ void CTextEditor::OnCommand( WPARAM wParam, LPARAM lParam )
         }
         case ID_VIEW_SETTINGS:
         {
+            DialogBox( 
+                GetModuleHandle( nullptr ), 
+                MAKEINTRESOURCE( IDD_DIALOG ),
+                mainWindow, 
+                settingsDialogProc );
             return;
         }
     }
@@ -203,6 +208,11 @@ LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARA
             return DefWindowProc( handle, message, wParam, lParam );
         }
     }
+}
+
+INT_PTR CTextEditor::settingsDialogProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
+{
+    return FALSE;
 }
 
 bool CTextEditor::saveInput() const
