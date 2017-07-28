@@ -23,8 +23,10 @@ int WINAPI _tWinMain(
     while( (getMessageStatus = GetMessage( &message, nullptr, 0, 0 )) != 0 ) {
         assert( getMessageStatus != -1 );
         
-        TranslateMessage( &message );
-        DispatchMessage( &message );
+        if( !window.IsDialogMessage( &message ) ) {
+            TranslateMessage( &message );
+            DispatchMessage( &message );
+        }
     }
 
     return EXIT_SUCCESS;

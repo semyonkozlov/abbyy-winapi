@@ -5,6 +5,7 @@
 
 #include "Resource.h"
 #include "TextEditor.h"
+#include <CommCtrl.h>
 
 const CTextEditor::CString CTextEditor::className = TEXT( "TEXTEDITOR" );
 
@@ -12,7 +13,7 @@ CTextEditor::CTextEditor( const CString& windowName ) :
     windowName( windowName ),
     mainWindow( nullptr ),
     editControl( nullptr ),
-    dialog( nullptr ),
+    settingsDialog( nullptr ),
     hasInput( false )
 {
 }
@@ -42,7 +43,7 @@ bool CTextEditor::Create()
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        CW_USEDEFAULT,
+        CW_USEDEFAULT, // TODO
         CW_USEDEFAULT,
         HWND_DESKTOP,
         nullptr,
@@ -53,16 +54,24 @@ bool CTextEditor::Create()
     editControl = CreateWindow(
         TEXT( "EDIT" ),
         nullptr,       
-        WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL,
+        WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        CW_USEDEFAULT,
+        CW_USEDEFAULT, 
         CW_USEDEFAULT,
         mainWindow,       
         nullptr, 
         GetModuleHandle( nullptr ),
         this );     
     assert( editControl != nullptr );
+
+    settingsDialog = CreateDialogParam(
+        GetModuleHandle( nullptr ),
+        MAKEINTRESOURCE( IDD_DIALOG ),
+        mainWindow,
+        settingsProc,
+        reinterpret_cast<LONG>(this) );
+    assert( settingsDialog != nullptr );
 
     return mainWindow;
 }
@@ -73,8 +82,14 @@ void CTextEditor::Show( int cmdShow ) const
     ShowWindow( editControl, cmdShow );
 }
 
+bool CTextEditor::IsDialogMessage( LPMSG messagePtr ) const
+{
+    return ::IsDialogMessage( settingsDialog, messagePtr );
+}
+
 void CTextEditor::OnCreate()
 {
+    // TODO
     return;
 }
 
@@ -92,7 +107,7 @@ void CTextEditor::OnSize()
         0 );
 }
 
-void CTextEditor::OnCommand( WPARAM wParam, LPARAM lParam )
+void CTextEditor::OnCommand( WPARAM wParam )
 {
     switch( HIWORD( wParam ) ) {
         case EN_CHANGE:
@@ -115,11 +130,7 @@ void CTextEditor::OnCommand( WPARAM wParam, LPARAM lParam )
         }
         case ID_VIEW_SETTINGS:
         {
-            DialogBox( 
-                GetModuleHandle( nullptr ), 
-                MAKEINTRESOURCE( IDD_DIALOG ),
-                mainWindow, 
-                settingsDialogProc );
+            ShowWindow( settingsDialog, SW_SHOW );
             return;
         }
     }
@@ -161,37 +172,60 @@ void CTextEditor::OnDestroy()
     PostQuitMessage( EXIT_SUCCESS );
 }
 
+void CTextEditor::OnInitSettingsDlg( HWND handle )
+{
+    SendMessage( 
+        GetDlgItem( handle, IDC_SLIDER_FONTSIZE ), 
+        TBM_SETRANGE, 
+        TRUE, MAKELONG( 8, 72 ) );
+    SendMessage( 
+        GetDlgItem( handle, IDC_SLIDER_TRANSPARENCY ),
+        TBM_SETRANGE, 
+        TRUE, MAKELONG( 0, 255 ) );
+}
+
+INT_PTR CTextEditor::OnCommandSettingsDlg( WPARAM wParam )
+{
+    return FALSE;
+}
+
+void CTextEditor::OnScrollSettingsDlg( WPARAM wParam, LPARAM lParam )
+{
+}
+
 LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
 {
-    CTextEditor* windowPtr;
+    CTextEditor* textEditor;
     if( message == WM_NCCREATE ) {
-        windowPtr = static_cast<CTextEditor*>(
+        textEditor = static_cast<CTextEditor*>(
             reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams );
-        SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( windowPtr ) );
-        windowPtr->mainWindow = handle;
+        SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( textEditor ) );
+
+        textEditor->mainWindow = handle;
+
         return DefWindowProc( handle, message, wParam, lParam );
     }
    
-    windowPtr = reinterpret_cast<CTextEditor*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
+    textEditor = reinterpret_cast<CTextEditor*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
     switch( message ) {
         case WM_CREATE:
         {
-            windowPtr->OnCreate();
+            textEditor->OnCreate();
             return EXIT_SUCCESS;
         }
         case WM_SIZE:
         {
-            windowPtr->OnSize();
+            textEditor->OnSize();
             return EXIT_SUCCESS;
         }
         case WM_COMMAND:
         {
-            windowPtr->OnCommand( wParam, lParam );
+            textEditor->OnCommand( wParam );
             return EXIT_SUCCESS;
         }
         case WM_CLOSE:
         {
-            bool shouldClose = windowPtr->OnClose();
+            bool shouldClose = textEditor->OnClose();
             if( shouldClose ) {
                 return DefWindowProc( handle, message, wParam, lParam );
             }
@@ -200,7 +234,7 @@ LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARA
         }
         case WM_DESTROY:
         {
-            windowPtr->OnDestroy();
+            textEditor->OnDestroy();
             return EXIT_SUCCESS;
         }
         default:
@@ -210,9 +244,34 @@ LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARA
     }
 }
 
-INT_PTR CTextEditor::settingsDialogProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
+INT_PTR CTextEditor::settingsProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
 {
-    return FALSE;
+    CTextEditor* textEditor;
+    if( message == WM_INITDIALOG ) {
+        textEditor = reinterpret_cast<CTextEditor*>( lParam );
+        SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( textEditor ) );
+
+        textEditor->OnInitSettingsDlg(handle);
+
+        return TRUE;
+    }
+
+    textEditor = reinterpret_cast<CTextEditor*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
+    switch( message ) {
+        case WM_COMMAND:
+        {
+            return textEditor->OnCommandSettingsDlg( wParam );
+        }
+        case WM_HSCROLL:
+        {
+            textEditor->OnScrollSettingsDlg( wParam, lParam );
+            return FALSE;
+        }
+        default:
+        {
+            return FALSE;
+        }
+    }
 }
 
 bool CTextEditor::saveInput() const
@@ -243,8 +302,8 @@ bool CTextEditor::saveInput() const
             nullptr );
 
         WriteFile( file, text.c_str(), textLength * sizeof( TCHAR ), nullptr, nullptr );
+        
         CloseHandle( file );
-
         return true;
     }
 
