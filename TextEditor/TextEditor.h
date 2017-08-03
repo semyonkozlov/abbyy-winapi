@@ -23,10 +23,11 @@ protected:
     void OnCommand( WPARAM wParam );
     bool OnClose();
     void OnDestroy();
+    HBRUSH OnCtlColorEdit( HDC deviceContext );
 
     void OnInitSettingsDlg( HWND handle );
     INT_PTR OnCommandSettingsDlg( WPARAM wParam );
-    void OnScrollSettingsDlg( WPARAM wParam, LPARAM lParam );
+    void OnScrollSettingsDlg( LPARAM lParam );
     
 private:
     static const CString className;
@@ -44,6 +45,19 @@ private:
     HWND settingsDialog;
 
     bool hasInput;
+    bool shouldPreview;
+
+    struct CSettings {
+        int fontSize;
+        DWORD fontColor;
+        DWORD backgroundColor;
+        BYTE opacity;
+    } currentSettings, backupSettings;
+
+    HFONT font;
+    HBRUSH bgBrush;
 
     bool saveInput() const;
+    void chooseColor( DWORD* colorPtr );
+    void updateWindow();
 };

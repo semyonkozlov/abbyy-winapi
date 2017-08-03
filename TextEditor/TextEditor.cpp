@@ -2,10 +2,10 @@
 
 #include <Windows.h>
 #include <WinUser.h>
+#include <CommCtrl.h>
 
 #include "Resource.h"
 #include "TextEditor.h"
-#include <CommCtrl.h>
 
 const CTextEditor::CString CTextEditor::className = TEXT( "TEXTEDITOR" );
 
@@ -14,8 +14,13 @@ CTextEditor::CTextEditor( const CString& windowName ) :
     mainWindow( nullptr ),
     editControl( nullptr ),
     settingsDialog( nullptr ),
-    hasInput( false )
+    hasInput( false ),
+    shouldPreview( false ), 
+    font( nullptr ),
+    bgBrush( nullptr )
 {
+    ZeroMemory( &currentSettings, sizeof( CSettings ) );
+    ZeroMemory( &backupSettings, sizeof( CSettings ) );
 }
 
 bool CTextEditor::RegisterClass()
@@ -37,7 +42,8 @@ bool CTextEditor::RegisterClass()
 
 bool CTextEditor::Create()
 {
-    mainWindow = CreateWindow(
+    mainWindow = CreateWindowEx(
+        WS_EX_LAYERED,
         className.c_str(),
         windowName.c_str(),
         WS_OVERLAPPEDWINDOW,
@@ -49,6 +55,7 @@ bool CTextEditor::Create()
         nullptr,
         GetModuleHandle( nullptr ),
         this );
+    SetLayeredWindowAttributes( mainWindow, 0, currentSettings.opacity, LWA_ALPHA );
     assert( mainWindow != nullptr );
 
     editControl = CreateWindow(
@@ -70,7 +77,7 @@ bool CTextEditor::Create()
         MAKEINTRESOURCE( IDD_DIALOG ),
         mainWindow,
         settingsProc,
-        reinterpret_cast<LONG>(this) );
+        reinterpret_cast<LPARAM>( this ) );
     assert( settingsDialog != nullptr );
 
     return mainWindow;
@@ -89,8 +96,28 @@ bool CTextEditor::IsDialogMessage( LPMSG messagePtr ) const
 
 void CTextEditor::OnCreate()
 {
-    // TODO
-    return;
+    currentSettings.fontSize = 16;
+    currentSettings.fontColor = RGB( 0, 0, 0 );
+    currentSettings.backgroundColor = RGB( 255, 255, 255 );
+    currentSettings.opacity = 255;
+
+    backupSettings = currentSettings;
+
+    font = CreateFont( currentSettings.fontSize, 0, 0, 0, 
+        FW_DONTCARE,
+        FALSE,
+        FALSE, 
+        FALSE, 
+        ANSI_CHARSET, 
+        OUT_DEFAULT_PRECIS,
+        CLIP_DEFAULT_PRECIS, 
+        DEFAULT_QUALITY, 
+        DEFAULT_PITCH | FF_SWISS,
+        TEXT( "Arial" ) );
+    assert( font != nullptr );
+    
+    bgBrush = CreateSolidBrush( currentSettings.backgroundColor );
+    assert( bgBrush != nullptr );
 }
 
 void CTextEditor::OnSize()
@@ -130,6 +157,7 @@ void CTextEditor::OnCommand( WPARAM wParam )
         }
         case ID_VIEW_SETTINGS:
         {
+            backupSettings = currentSettings;
             ShowWindow( settingsDialog, SW_SHOW );
             return;
         }
@@ -169,7 +197,21 @@ bool CTextEditor::OnClose( )
 
 void CTextEditor::OnDestroy()
 {
+    DeleteObject( bgBrush );
+    DeleteObject( font );
+
     PostQuitMessage( EXIT_SUCCESS );
+}
+
+HBRUSH CTextEditor::OnCtlColorEdit( HDC deviceContext )
+{
+    SetTextColor( deviceContext, currentSettings.fontColor );
+    SetBkColor( deviceContext, currentSettings.backgroundColor );
+
+    DeleteObject( bgBrush );
+    bgBrush = CreateSolidBrush( currentSettings.backgroundColor );
+
+    return bgBrush;
 }
 
 void CTextEditor::OnInitSettingsDlg( HWND handle )
@@ -182,26 +224,80 @@ void CTextEditor::OnInitSettingsDlg( HWND handle )
         GetDlgItem( handle, IDC_SLIDER_TRANSPARENCY ),
         TBM_SETRANGE, 
         TRUE, MAKELONG( 0, 255 ) );
+
+    SendMessage( 
+        GetDlgItem( handle, IDC_SLIDER_FONTSIZE ),
+        TBM_SETPOS, 
+        TRUE, currentSettings.fontSize );
+    SendMessage( 
+        GetDlgItem( handle, IDC_SLIDER_TRANSPARENCY ), 
+        TBM_SETPOS, 
+        TRUE, currentSettings.opacity );
+
+    SendMessage( editControl, WM_SETFONT, reinterpret_cast<WPARAM>( font ), TRUE );
 }
 
 INT_PTR CTextEditor::OnCommandSettingsDlg( WPARAM wParam )
 {
+    switch( LOWORD( wParam ) ) {
+        case ID_PUSHBUTTON_FONT:
+        {
+            chooseColor( &currentSettings.fontColor );
+            break;
+        }
+        case ID_PUSHBUTTON_BG:
+        {
+            chooseColor( &currentSettings.backgroundColor );
+            break; 
+        }
+        case IDC_CHECKBOX_PREVIEW:
+        {
+            shouldPreview = IsDlgButtonChecked( settingsDialog, IDC_CHECKBOX_PREVIEW ) == BST_CHECKED;
+            break;
+        }
+        case ID_PUSHBUTTON_OK:
+        {
+            updateWindow();
+            EndDialog( settingsDialog, wParam );
+            return TRUE;
+        }
+        case ID_PUSHBUTTON_CANCEL:
+        {
+            currentSettings = backupSettings;
+            updateWindow();
+            EndDialog( settingsDialog, wParam );
+            return TRUE;
+        }
+    }
+
+    if( shouldPreview ) {
+        updateWindow();
+    }
     return FALSE;
 }
 
-void CTextEditor::OnScrollSettingsDlg( WPARAM wParam, LPARAM lParam )
+void CTextEditor::OnScrollSettingsDlg( LPARAM lParam )
 {
+    auto scrollBarControl = reinterpret_cast<HWND>( lParam );
+    if( scrollBarControl == GetDlgItem( settingsDialog, IDC_SLIDER_FONTSIZE ) ) {
+        currentSettings.fontSize = SendMessage( scrollBarControl, TBM_GETPOS, 0, 0 );
+    }
+    else if ( scrollBarControl == GetDlgItem( settingsDialog, IDC_SLIDER_TRANSPARENCY ) ) {
+        currentSettings.opacity = SendMessage( scrollBarControl, TBM_GETPOS, 0, 0 );
+    }
+
+    if( shouldPreview ) {
+        updateWindow();
+    }
 }
 
 LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
 {
-    CTextEditor* textEditor;
+    CTextEditor* textEditor = nullptr;
     if( message == WM_NCCREATE ) {
         textEditor = static_cast<CTextEditor*>(
             reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams );
         SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( textEditor ) );
-
-        textEditor->mainWindow = handle;
 
         return DefWindowProc( handle, message, wParam, lParam );
     }
@@ -237,6 +333,11 @@ LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARA
             textEditor->OnDestroy();
             return EXIT_SUCCESS;
         }
+        case WM_CTLCOLOREDIT:
+        {
+            return reinterpret_cast<LRESULT>( 
+                textEditor->OnCtlColorEdit( reinterpret_cast<HDC>( wParam ) ) );
+        }
         default:
         {
             return DefWindowProc( handle, message, wParam, lParam );
@@ -246,12 +347,12 @@ LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARA
 
 INT_PTR CTextEditor::settingsProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
 {
-    CTextEditor* textEditor;
+    CTextEditor* textEditor = nullptr;
     if( message == WM_INITDIALOG ) {
         textEditor = reinterpret_cast<CTextEditor*>( lParam );
         SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( textEditor ) );
 
-        textEditor->OnInitSettingsDlg(handle);
+        textEditor->OnInitSettingsDlg( handle );
 
         return TRUE;
     }
@@ -264,7 +365,7 @@ INT_PTR CTextEditor::settingsProc( HWND handle, UINT message, WPARAM wParam, LPA
         }
         case WM_HSCROLL:
         {
-            textEditor->OnScrollSettingsDlg( wParam, lParam );
+            textEditor->OnScrollSettingsDlg( lParam );
             return FALSE;
         }
         default:
@@ -272,6 +373,35 @@ INT_PTR CTextEditor::settingsProc( HWND handle, UINT message, WPARAM wParam, LPA
             return FALSE;
         }
     }
+}
+
+void CTextEditor::chooseColor( DWORD* colorPtr )
+{
+    CHOOSECOLOR chooseColorStruct;
+    ZeroMemory( &chooseColorStruct, sizeof( CHOOSECOLOR ) );
+    COLORREF palitre[16];
+    ZeroMemory( palitre, 16 * sizeof( COLORREF ) );
+
+    chooseColorStruct.lStructSize = sizeof( CHOOSECOLOR );
+    chooseColorStruct.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT;
+    chooseColorStruct.lpCustColors = palitre;
+    chooseColorStruct.rgbResult = *colorPtr;
+
+    ChooseColor( &chooseColorStruct );
+    *colorPtr = chooseColorStruct.rgbResult;
+}
+
+void CTextEditor::updateWindow()
+{
+    LOGFONT fontStruct;
+    GetObject( font, sizeof( LOGFONT ), &fontStruct );
+    fontStruct.lfHeight = currentSettings.fontSize;
+
+    DeleteObject( font );
+    font = CreateFontIndirect( &fontStruct );
+    SendMessage( editControl, WM_SETFONT, reinterpret_cast<WPARAM>( font ), TRUE );
+
+    SetLayeredWindowAttributes( mainWindow, 0, currentSettings.opacity, LWA_ALPHA );
 }
 
 bool CTextEditor::saveInput() const

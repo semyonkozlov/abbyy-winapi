@@ -154,6 +154,7 @@ LRESULT COverlappedWindow::windowProc( HWND handle, UINT message, WPARAM wParam,
              reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams );
          SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( windowPtr ) );
          windowPtr->windowHandle = handle;
+
          return DefWindowProc( handle, message, wParam, lParam );
      }
     
