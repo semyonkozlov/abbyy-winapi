@@ -31,7 +31,7 @@ bool CTextEditor::RegisterClass()
     windowClass.style = CS_HREDRAW | CS_VREDRAW;
     windowClass.lpfnWndProc = windowProc;
     windowClass.hInstance = GetModuleHandle( nullptr );
-    windowClass.hIcon = LoadIcon( nullptr, IDI_APPLICATION );
+    windowClass.hIcon = LoadIcon( GetModuleHandle( nullptr ), MAKEINTRESOURCE( IDI_ICON ) );
     windowClass.hCursor = LoadCursor( nullptr, IDC_ARROW );
     windowClass.hbrBackground = reinterpret_cast<HBRUSH>( COLOR_WINDOW + 1 );
     windowClass.lpszMenuName = MAKEINTRESOURCE( IDR_MENU );
@@ -49,7 +49,7 @@ bool CTextEditor::Create()
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        CW_USEDEFAULT, // TODO
+        CW_USEDEFAULT, 
         CW_USEDEFAULT,
         HWND_DESKTOP,
         nullptr,
@@ -218,23 +218,11 @@ HBRUSH CTextEditor::OnCtlColorEdit( HDC deviceContext )
 
 void CTextEditor::OnInitSettingsDlg( HWND handle )
 {
-    SendMessage( 
-        GetDlgItem( handle, IDC_SLIDER_FONTSIZE ), 
-        TBM_SETRANGE, 
-        TRUE, MAKELONG( 8, 72 ) );
-    SendMessage( 
-        GetDlgItem( handle, IDC_SLIDER_OPACITY ),
-        TBM_SETRANGE, 
-        TRUE, MAKELONG( 0, 255 ) );
+    SendMessage( GetDlgItem( handle, IDC_SLIDER_FONTSIZE ), TBM_SETRANGE, TRUE, MAKELONG( 8, 72 ) );
+    SendMessage( GetDlgItem( handle, IDC_SLIDER_OPACITY ), TBM_SETRANGE, TRUE, MAKELONG( 0, 255 ) );
 
-    SendMessage( 
-        GetDlgItem( handle, IDC_SLIDER_FONTSIZE ),
-        TBM_SETPOS, 
-        TRUE, currentSettings.fontSize );
-    SendMessage( 
-        GetDlgItem( handle, IDC_SLIDER_OPACITY ), 
-        TBM_SETPOS, 
-        TRUE, currentSettings.opacity );
+    SendMessage( GetDlgItem( handle, IDC_SLIDER_FONTSIZE ), TBM_SETPOS, TRUE, currentSettings.fontSize );
+    SendMessage( GetDlgItem( handle, IDC_SLIDER_OPACITY ), TBM_SETPOS, TRUE, currentSettings.opacity );
 
     SendMessage( editControl, WM_SETFONT, reinterpret_cast<WPARAM>( font ), TRUE );
 }
@@ -297,8 +285,7 @@ LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARA
 {
     CTextEditor* textEditor = nullptr;
     if( message == WM_NCCREATE ) {
-        textEditor = static_cast<CTextEditor*>(
-            reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams );
+        textEditor = static_cast<CTextEditor*>( reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams );
         SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( textEditor ) );
 
         return DefWindowProc( handle, message, wParam, lParam );
@@ -337,8 +324,7 @@ LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARA
         }
         case WM_CTLCOLOREDIT:
         {
-            return reinterpret_cast<LRESULT>( 
-                textEditor->OnCtlColorEdit( reinterpret_cast<HDC>( wParam ) ) );
+            return reinterpret_cast<LRESULT>( textEditor->OnCtlColorEdit( reinterpret_cast<HDC>( wParam ) ) );
         }
         default:
         {
@@ -409,14 +395,8 @@ void CTextEditor::updateWindow()
 
     SetLayeredWindowAttributes( mainWindow, 0, currentSettings.opacity, LWA_ALPHA );
 
-    SendMessage(
-        GetDlgItem( settingsDialog, IDC_SLIDER_FONTSIZE ),
-        TBM_SETPOS,
-        TRUE, currentSettings.fontSize );
-    SendMessage(
-        GetDlgItem( settingsDialog, IDC_SLIDER_OPACITY ),
-        TBM_SETPOS,
-        TRUE, currentSettings.opacity );
+    SendMessage( GetDlgItem( settingsDialog, IDC_SLIDER_FONTSIZE ), TBM_SETPOS, TRUE, currentSettings.fontSize );
+    SendMessage( GetDlgItem( settingsDialog, IDC_SLIDER_OPACITY ), TBM_SETPOS, TRUE, currentSettings.opacity );
 
     UpdateWindow( editControl );
 }
