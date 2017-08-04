@@ -96,24 +96,26 @@ bool CTextEditor::IsDialogMessage( LPMSG messagePtr ) const
 
 void CTextEditor::OnCreate()
 {
-    currentSettings.fontSize = 16;
+    currentSettings.fontSize = 14;
     currentSettings.fontColor = RGB( 0, 0, 0 );
     currentSettings.backgroundColor = RGB( 255, 255, 255 );
     currentSettings.opacity = 255;
 
     backupSettings = currentSettings;
 
-    font = CreateFont( currentSettings.fontSize, 0, 0, 0, 
-        FW_DONTCARE,
-        FALSE,
-        FALSE, 
-        FALSE, 
-        ANSI_CHARSET, 
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS, 
-        DEFAULT_QUALITY, 
-        DEFAULT_PITCH | FF_SWISS,
-        TEXT( "Arial" ) );
+    font = CreateFont(
+        currentSettings.fontSize, 0, 0, 0,                        
+        FW_DONTCARE,               
+        FALSE,                     
+        FALSE,                     
+        FALSE,                     
+        ANSI_CHARSET,              
+        OUT_DEFAULT_PRECIS,        
+        CLIP_DEFAULT_PRECIS,       
+        DEFAULT_QUALITY,           
+        FIXED_PITCH,               
+        TEXT( "Lucida Console" )   
+    );
     assert( font != nullptr );
     
     bgBrush = CreateSolidBrush( currentSettings.backgroundColor );
@@ -221,7 +223,7 @@ void CTextEditor::OnInitSettingsDlg( HWND handle )
         TBM_SETRANGE, 
         TRUE, MAKELONG( 8, 72 ) );
     SendMessage( 
-        GetDlgItem( handle, IDC_SLIDER_TRANSPARENCY ),
+        GetDlgItem( handle, IDC_SLIDER_OPACITY ),
         TBM_SETRANGE, 
         TRUE, MAKELONG( 0, 255 ) );
 
@@ -230,7 +232,7 @@ void CTextEditor::OnInitSettingsDlg( HWND handle )
         TBM_SETPOS, 
         TRUE, currentSettings.fontSize );
     SendMessage( 
-        GetDlgItem( handle, IDC_SLIDER_TRANSPARENCY ), 
+        GetDlgItem( handle, IDC_SLIDER_OPACITY ), 
         TBM_SETPOS, 
         TRUE, currentSettings.opacity );
 
@@ -258,14 +260,14 @@ INT_PTR CTextEditor::OnCommandSettingsDlg( WPARAM wParam )
         case ID_PUSHBUTTON_OK:
         {
             updateWindow();
-            EndDialog( settingsDialog, wParam );
+            EndDialog( settingsDialog, EXIT_SUCCESS );
             return TRUE;
         }
         case ID_PUSHBUTTON_CANCEL:
         {
             currentSettings = backupSettings;
             updateWindow();
-            EndDialog( settingsDialog, wParam );
+            EndDialog( settingsDialog, EXIT_SUCCESS );
             return TRUE;
         }
     }
@@ -282,7 +284,7 @@ void CTextEditor::OnScrollSettingsDlg( LPARAM lParam )
     if( scrollBarControl == GetDlgItem( settingsDialog, IDC_SLIDER_FONTSIZE ) ) {
         currentSettings.fontSize = SendMessage( scrollBarControl, TBM_GETPOS, 0, 0 );
     }
-    else if ( scrollBarControl == GetDlgItem( settingsDialog, IDC_SLIDER_TRANSPARENCY ) ) {
+    else if ( scrollBarControl == GetDlgItem( settingsDialog, IDC_SLIDER_OPACITY ) ) {
         currentSettings.opacity = SendMessage( scrollBarControl, TBM_GETPOS, 0, 0 );
     }
 
@@ -368,6 +370,10 @@ INT_PTR CTextEditor::settingsProc( HWND handle, UINT message, WPARAM wParam, LPA
             textEditor->OnScrollSettingsDlg( lParam );
             return FALSE;
         }
+        case WM_CLOSE:
+        {
+            return textEditor->OnCommandSettingsDlg( ID_PUSHBUTTON_CANCEL );
+        }
         default:
         {
             return FALSE;
@@ -402,6 +408,17 @@ void CTextEditor::updateWindow()
     SendMessage( editControl, WM_SETFONT, reinterpret_cast<WPARAM>( font ), TRUE );
 
     SetLayeredWindowAttributes( mainWindow, 0, currentSettings.opacity, LWA_ALPHA );
+
+    SendMessage(
+        GetDlgItem( settingsDialog, IDC_SLIDER_FONTSIZE ),
+        TBM_SETPOS,
+        TRUE, currentSettings.fontSize );
+    SendMessage(
+        GetDlgItem( settingsDialog, IDC_SLIDER_OPACITY ),
+        TBM_SETPOS,
+        TRUE, currentSettings.opacity );
+
+    UpdateWindow( editControl );
 }
 
 bool CTextEditor::saveInput() const
