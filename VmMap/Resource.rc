@@ -1,0 +1,35 @@
+#include <WinRes.h>
+#include <Windows.h>
+
+#include "Resource.h"
+
+IDR_MENU MENU
+BEGIN
+  POPUP "&File"
+  BEGIN
+    MENUITEM "Select Process...", ID_SELECT_PROCESS
+    MENUITEM "&Open...", ID_OPEN
+    MENUITEM "&Save", ID_SAVE
+    MENUITEM "Save &As...", ID_SAVE_AS
+    MENUITEM "&Exit", ID_EXIT
+  END
+
+  POPUP "&Edit"
+  BEGIN
+    MENUITEM "&Copy Address", ID_COPY_ADDRESS
+    MENUITEM "Copy &All", ID_COPY_ALL
+  END
+
+  POPUP "&View"
+  BEGIN
+    MENUITEM "&Expand All", ID_EXPAND_ALL
+    MENUITEM "&Collapse ALl", ID_COLLAPSE_ALL
+    MENUITEM "&Refresh", ID_REFRESH
+  END
+
+  POPUP "&Help"
+  BEGIN
+    MENUITEM "&Quick Help", ID_QUICK_HELP
+    MENUITEM "&About", ID_ABOUT
+  END
+END

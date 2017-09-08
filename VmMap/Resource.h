@@ -1,0 +1,30 @@
+#pragma once
+
+// Menu
+#define IDR_MENU 1
+
+// File popup
+#define ID_SELECT_PROCESS 111
+#define ID_OPEN 112
+#define ID_SAVE 113
+#define ID_SAVE_AS 114
+#define ID_EXIT 115
+
+// Edit popup
+#define ID_COPY_ADDRESS 121
+#define ID_COPY_ALL 122
+
+// View popup
+#define ID_EXPAND_ALL 131
+#define ID_COLLAPSE_ALL 132
+#define ID_REFRESH 133
+
+// Help popup
+#define ID_QUICK_HELP 141
+#define ID_ABOUT 142
+
+// Select-process dialog
+// TODO
+
+// Icon
+#define IDI_ICON 3
