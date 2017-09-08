@@ -8,9 +8,7 @@
 #include "OverlappedWindow.h"
 #include "Resource.h"
 
-int WINAPI _tWinMain( 
-    HINSTANCE instance, HINSTANCE prevInstance,
-    LPTSTR cmdLine, int cmdShow )
+int WINAPI _tWinMain( HINSTANCE instance, HINSTANCE prevInstance, LPTSTR cmdLine, int cmdShow )
 {
     /*bool registerClassStatus = CEllipseWindow::RegisterClass();
     assert( registerClassStatus != false );

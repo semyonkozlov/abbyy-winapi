@@ -1,18 +1,24 @@
 #include "Utils.h"
 
-CString GetErrorString( DWORD errorCode )
+CString GetErrorText( DWORD errorCode )
 {
-    const int messageStringSize = 256;
-    TCHAR errorMessage[messageStringSize];
+    const int errorTextLength = 256;
+    TCHAR errorText[errorTextLength];
 
-    FormatMessage( 
-        FORMAT_MESSAGE_FROM_SYSTEM, 
+    FormatMessage(
+        FORMAT_MESSAGE_FROM_SYSTEM,
         nullptr,
         errorCode,
-        MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), 
-        errorMessage, 
-        messageStringSize,
+        MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
+        errorText,
+        errorTextLength,
         nullptr );
 
-    return { errorMessage };
+    return { errorText };
+}
+
+void ShowLastError()
+{
+    CString errorText = GetErrorText( GetLastError() );
+    MessageBox( nullptr, errorText.c_str(), nullptr, MB_OK );
 }

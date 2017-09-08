@@ -1,10 +1,12 @@
 #pragma once
 
-#include <string>
-
 #include <Tchar.h>
 #include <Windows.h>
 
+#include <string>
+
 using CString = std::basic_string<TCHAR>;
 
-CString GetErrorString( DWORD errorCode );
+CString GetErrorText( DWORD errorCode );
+
+void ShowLastError();

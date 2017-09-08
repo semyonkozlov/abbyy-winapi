@@ -272,7 +272,7 @@ void CTextEditor::OnScrollSettingsDlg( LPARAM lParam )
     if( scrollBarControl == GetDlgItem( settingsDialog, IDC_SLIDER_FONTSIZE ) ) {
         currentSettings.fontSize = SendMessage( scrollBarControl, TBM_GETPOS, 0, 0 );
     }
-    else if ( scrollBarControl == GetDlgItem( settingsDialog, IDC_SLIDER_OPACITY ) ) {
+    else if( scrollBarControl == GetDlgItem( settingsDialog, IDC_SLIDER_OPACITY ) ) {
         currentSettings.opacity = SendMessage( scrollBarControl, TBM_GETPOS, 0, 0 );
     }
 
@@ -285,7 +285,7 @@ LRESULT CTextEditor::windowProc( HWND handle, UINT message, WPARAM wParam, LPARA
 {
     CTextEditor* textEditor = nullptr;
     if( message == WM_NCCREATE ) {
-        textEditor = static_cast<CTextEditor*>( reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams );
+        textEditor = static_cast<CTextEditor*>(reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams);
         SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( textEditor ) );
 
         return DefWindowProc( handle, message, wParam, lParam );

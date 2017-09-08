@@ -5,25 +5,24 @@
 
 #include "TextEditor.h"
 
-int WINAPI _tWinMain(
-    HINSTANCE instance, HINSTANCE prevInstance,
-    LPTSTR cmdLine, int cmdShow )
+int WINAPI _tWinMain( HINSTANCE instance, HINSTANCE prevInstance, LPTSTR cmdLine, int cmdShow )
 {
     bool registerClassStatus = CTextEditor::RegisterClass();
     assert( registerClassStatus != false );
 
-    CTextEditor window;
-    bool createStatus = window.Create();
+    CTextEditor textEditor;
+    bool createStatus = textEditor.Create();
     assert( createStatus != false );
 
-    window.Show( cmdShow );
+    textEditor.Show( cmdShow );
 
     BOOL getMessageStatus = FALSE;
     MSG message;
     while( (getMessageStatus = GetMessage( &message, nullptr, 0, 0 )) != 0 ) {
         assert( getMessageStatus != -1 );
         
-        if( !window.IsDialogMessage( &message ) ) {
+        // TODO: accelerator support
+        if( !textEditor.IsDialogMessage( &message ) ) {
             TranslateMessage( &message );
             DispatchMessage( &message );
         }

@@ -32,11 +32,9 @@ protected:
 private:
     static const CString className;
 
-    static LRESULT CALLBACK windowProc( HWND handle, UINT message,
-        WPARAM wParam, LPARAM lParam );
+    static LRESULT CALLBACK windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam );
 
-    static INT_PTR CALLBACK settingsProc( HWND handle, UINT message, 
-        WPARAM wParam, LPARAM lParam );
+    static INT_PTR CALLBACK settingsProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam );
 
     CString windowName;
 

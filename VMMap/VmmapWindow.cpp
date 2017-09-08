@@ -1,45 +1,39 @@
-#define WINVER 0x0A00 
-#define _WIN32_WINNT 0x0A00
-
 #include <cassert>
 
-#include <Windowsx.h>
+#include <Windows.h>
 
 #include "Utils.h"
-#include "VmmapWindow.h"
+#include "Resource.h"
+#include "VmMapWindow.h"
 
-#include <CommCtrl.h>
+const CString CVmMapWindow::className = TEXT( "VMMAP" );
 
-const CString CVmmapWindow::className = TEXT( "Vmmap window" );
-
-CVmmapWindow::CVmmapWindow() :
-    mainWindow( nullptr ), 
-    listBox( nullptr ),
-    expandRegionsFlag( false ),
-    observedProcess( nullptr ),
-    memoryViewer()
+CVmMapWindow::CVmMapWindow( CString windowName ) :
+    windowName( windowName ),
+    mainWindow( nullptr ),
+    procsList( nullptr ),
+    selectProcDialog( nullptr )
 {
 }
 
-bool CVmmapWindow::RegisterClass()
+bool CVmMapWindow::RegisterClass()
 {
     WNDCLASS windowClass;
+    ZeroMemory( &windowClass, sizeof( WNDCLASS ) );
 
     windowClass.style = CS_HREDRAW | CS_VREDRAW;
     windowClass.lpfnWndProc = windowProc;
-    windowClass.cbClsExtra = 0;
-    windowClass.cbWndExtra = 0;
     windowClass.hInstance = GetModuleHandle( nullptr );
-    windowClass.hIcon = LoadIcon( nullptr, IDI_APPLICATION );
+    windowClass.hIcon = LoadIcon( GetModuleHandle( nullptr ), MAKEINTRESOURCE( IDI_ICON ) );
     windowClass.hCursor = LoadCursor( nullptr, IDC_ARROW );
     windowClass.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
-    windowClass.lpszMenuName = nullptr;
+    windowClass.lpszMenuName = MAKEINTRESOURCE( IDR_MENU );
     windowClass.lpszClassName = className.c_str();
 
     return ::RegisterClass( &windowClass );
 }
 
-bool CVmmapWindow::Create()
+bool CVmMapWindow::Create()
 {
     mainWindow = CreateWindow(
         className.c_str(),
@@ -55,82 +49,35 @@ bool CVmmapWindow::Create()
         this );
     assert( mainWindow != nullptr );
 
-    listBox = CreateWindowEx(
-        WS_EX_CLIENTEDGE, 
-        TEXT( "LISTBOX" ),
-        nullptr,
-        WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_AUTOVSCROLL, 
-        7, 
-        35, 
-        300 * 2, 
-        200 * 2, 
-        mainWindow,
-        nullptr,
-        GetModuleHandle( nullptr ),
-        nullptr);
+    procsList = nullptr; // TODO
+    
+    selectProcDialog = nullptr; // TODO
 
-    ListBox_AddString( listBox, TEXT( "Win sucks" ) );
-
-    return mainWindow;
+    return mainWindow && procsList && selectProcDialog;
 }
 
-void CVmmapWindow::Show( int cmdShow ) const
+void CVmMapWindow::Show( int cmdShow ) const
 {
     ShowWindow( mainWindow, cmdShow );
-    UpdateWindow( mainWindow );
+    ShowWindow( procsList, cmdShow );
 }
 
-void CVmmapWindow::OnCreate()
+bool CVmMapWindow::IsDialogMessage( LPMSG messagePtr ) const
 {
-    // TODO: prompt user to enter process id
-    observedProcess = GetCurrentProcess();
-
-    int aTabs[5];
-    aTabs[0] = 48;
-    aTabs[1] = aTabs[0] + 40;
-    aTabs[2] = aTabs[1] + 52;  // count
-    aTabs[3] = aTabs[2] + 12;  // flags
-    aTabs[4] = aTabs[3] + 20;  // description
-    //ListBox_SetTabStops( listBox, _countof( aTabs ), aTabs );
-
-    //ListBox_ResetContent( listBox );
-    //ListBox_SetHorizontalExtent( listBox, 300 * LOWORD( GetDialogBaseUnits() ) );
-
-    ListBox_AddString( listBox, TEXT( "Win sucks" ) );
-    
-    UpdateWindow( listBox );
-    UpdateWindow( mainWindow );
+    return ::IsDialogMessage( selectProcDialog, messagePtr );
 }
 
-void CVmmapWindow::OnDestroy()
+LRESULT CVmMapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
 {
-    PostQuitMessage( EXIT_SUCCESS );
-}
+    CVmMapWindow* vmMapWindow = nullptr;
+    if( message == WM_NCCREATE ) {
+        vmMapWindow = static_cast<CVmMapWindow*>( reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams );
+        SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( vmMapWindow ) );
 
-LRESULT CVmmapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
-{
-    auto windowPtr = reinterpret_cast<CVmmapWindow*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
+        return DefWindowProc( handle, message, wParam, lParam );
+    }
 
-    switch( message ) {
-        case WM_NCCREATE:
-        {
-            windowPtr = static_cast<CVmmapWindow*>(
-                reinterpret_cast<CREATESTRUCT*>( lParam )->lpCreateParams );
-            SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(windowPtr) );
-            windowPtr->mainWindow = handle;
-            return DefWindowProc( handle, message, wParam, lParam );
-        }
-        case WM_CREATE:
-        {
-            windowPtr->OnCreate();
-            return EXIT_SUCCESS;
-        }
-        case WM_DESTROY:
-        {
-            windowPtr->OnDestroy();
-            return EXIT_SUCCESS;
-        }
-        default:
-            return DefWindowProc( handle, message, wParam, lParam );
+    vmMapWindow = reinterpret_cast<CVmMapWindow*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
+    switch( message ) { // TODO
     }
 }

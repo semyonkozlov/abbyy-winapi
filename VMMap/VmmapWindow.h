@@ -1,34 +1,29 @@
 #pragma once
 
-#include <Windows.h>
-
+#include "Windows.h"
 #include "Utils.h"
-#include "MemoryViewer.h"
 
-class CVmmapWindow {
+class CVmMapWindow {
 public:
-    explicit CVmmapWindow();
-    ~CVmmapWindow() = default;
+    explicit CVmMapWindow( CString windowName = TEXT( "VmMap" ) );
 
     static bool RegisterClass();
+
     bool Create();
     void Show( int cmdShow ) const;
 
+    bool IsDialogMessage( LPMSG messagePtr ) const;
+
 protected:
-    void OnCreate();
-    void OnDestroy();
 
 private:
     static const CString className;
 
     static LRESULT CALLBACK windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam );
 
-    HWND mainWindow;
-    HWND listBox;
     CString windowName;
 
-    bool expandRegionsFlag;
-    HANDLE observedProcess;
-
-    CMemoryViewer memoryViewer;
+    HWND mainWindow;
+    HWND procsList;
+    HWND selectProcDialog;
 };
