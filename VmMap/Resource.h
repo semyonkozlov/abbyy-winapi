@@ -24,7 +24,7 @@
 #define ID_ABOUT 142
 
 // Select-process dialog
-// TODO
+#define IDD_DIALOG 2
 
 // Icon
 #define IDI_ICON 3

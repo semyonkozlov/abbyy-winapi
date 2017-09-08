@@ -1,20 +1,22 @@
 #pragma once
 
 #include "Windows.h"
+#include "CSelectProcDialog.h"
 #include "Utils.h"
 
 class CVmMapWindow {
 public:
     explicit CVmMapWindow( CString windowName = TEXT( "VmMap" ) );
 
-    static bool RegisterClass();
+    static void RegisterClass();
 
-    bool Create();
+    HWND Create();
     void Show( int cmdShow ) const;
 
     bool IsDialogMessage( LPMSG messagePtr ) const;
 
 protected:
+    void OnDestroy();
 
 private:
     static const CString className;
@@ -23,7 +25,9 @@ private:
 
     CString windowName;
 
+    CSelectProcDialog selectProcDialog;
+
     HWND mainWindow;
     HWND procsList;
-    HWND selectProcDialog;
+    HWND dialogWindow;
 };
