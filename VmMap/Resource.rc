@@ -23,7 +23,7 @@ BEGIN
   POPUP "&View"
   BEGIN
     MENUITEM "&Expand All", ID_EXPAND_ALL
-    MENUITEM "&Collapse ALl", ID_COLLAPSE_ALL
+    MENUITEM "&Collapse All", ID_COLLAPSE_ALL
     MENUITEM "&Refresh", ID_REFRESH
   END
 

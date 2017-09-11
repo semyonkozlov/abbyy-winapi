@@ -3,7 +3,7 @@
 #include <Windows.h>
 
 #include "Resource.h"
-#include "CSelectProcDialog.h"
+#include "SelectProcDialog.h"
 
 CSelectProcDialog::CSelectProcDialog() :
     dialog( nullptr )
@@ -18,7 +18,7 @@ HWND CSelectProcDialog::Create( HWND parent )
         parent,
         dialogProc,
         reinterpret_cast<LPARAM>( this ) );
-    assert( dialog != nullptr );
+    //assert( dialog != nullptr ); TODO
    
     return dialog;
 }

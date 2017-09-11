@@ -1,6 +1,7 @@
 #include <cassert>
 
 #include <Windows.h>
+#include <CommCtrl.h>
 
 #include "Utils.h"
 #include "Resource.h"
@@ -8,11 +9,12 @@
 
 const CString CVmMapWindow::className = TEXT( "VMMAP" );
 
-CVmMapWindow::CVmMapWindow( CString windowName ) :
-    windowName( windowName ),
+CVmMapWindow::CVmMapWindow() :
+    windowTitle(),
     selectProcDialog(),
+    procsList(),
     mainWindow( nullptr ),
-    procsList( nullptr ),
+    listWindow( nullptr ),
     dialogWindow( nullptr )
 {
 }
@@ -39,7 +41,7 @@ HWND CVmMapWindow::Create()
 {
     mainWindow = CreateWindow(
         className.c_str(),
-        windowName.c_str(),
+        windowTitle.c_str(),
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
@@ -51,8 +53,7 @@ HWND CVmMapWindow::Create()
         this );
     assert( mainWindow != nullptr );
 
-    procsList = nullptr; // TODO
-    //assert( procsList != nullptr );
+    listWindow = procsList.Create( mainWindow );
     
     dialogWindow = selectProcDialog.Create( mainWindow );
 
@@ -62,7 +63,7 @@ HWND CVmMapWindow::Create()
 void CVmMapWindow::Show( int cmdShow ) const
 {
     ShowWindow( mainWindow, cmdShow );
-    ShowWindow( procsList, cmdShow );
+    procsList.Show( cmdShow );
 }
 
 bool CVmMapWindow::IsDialogMessage( LPMSG messagePtr ) const
@@ -73,6 +74,20 @@ bool CVmMapWindow::IsDialogMessage( LPMSG messagePtr ) const
 void CVmMapWindow::OnDestroy()
 {
     PostQuitMessage( EXIT_SUCCESS );
+}
+
+void CVmMapWindow::OnSize()
+{
+    RECT rect;
+    GetClientRect( mainWindow, &rect );
+    SetWindowPos(
+        listWindow,
+        HWND_TOP,
+        rect.left,
+        rect.top,
+        rect.right - rect.left,
+        rect.bottom - rect.top,
+        0 );
 }
 
 LRESULT CVmMapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
@@ -87,6 +102,11 @@ LRESULT CVmMapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPAR
 
     vmmap = reinterpret_cast<CVmMapWindow*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
     switch( message ) { // TODO
+        case WM_SIZE:
+        {
+            vmmap->OnSize();
+            return EXIT_SUCCESS;
+        }
         case WM_DESTROY:
         {
             vmmap->OnDestroy();

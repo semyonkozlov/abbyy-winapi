@@ -1,12 +1,14 @@
 #pragma once
 
-#include "Windows.h"
-#include "CSelectProcDialog.h"
+#include <Windows.h>
+
+#include "SelectProcDialog.h"
+#include "ProcsList.h"
 #include "Utils.h"
 
 class CVmMapWindow {
 public:
-    explicit CVmMapWindow( CString windowName = TEXT( "VmMap" ) );
+    CVmMapWindow();
 
     static void RegisterClass();
 
@@ -17,17 +19,19 @@ public:
 
 protected:
     void OnDestroy();
+    void OnSize();
 
 private:
     static const CString className;
 
     static LRESULT CALLBACK windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam );
 
-    CString windowName;
+    CString windowTitle;
 
     CSelectProcDialog selectProcDialog;
+    CProcsList procsList;
 
     HWND mainWindow;
-    HWND procsList;
+    HWND listWindow;
     HWND dialogWindow;
 };

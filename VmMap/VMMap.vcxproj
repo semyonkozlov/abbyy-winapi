@@ -139,7 +139,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CSelectProcDialog.cpp" />
+    <ClCompile Include="ProcsList.cpp" />
+    <ClCompile Include="SelectProcDialog.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MemoryInfo.cpp" />
     <ClCompile Include="MemoryScanner.cpp" />
@@ -147,7 +148,8 @@
     <ClCompile Include="VmMapWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CSelectProcDialog.h" />
+    <ClInclude Include="ProcsList.h" />
+    <ClInclude Include="SelectProcDialog.h" />
     <ClInclude Include="MemoryInfo.h" />
     <ClInclude Include="MemoryScanner.h" />
     <ClInclude Include="Resource.h" />

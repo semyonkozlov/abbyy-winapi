@@ -28,3 +28,6 @@
 
 // Icon
 #define IDI_ICON 3
+
+// ListView
+#define IDC_LISTVIEW 4

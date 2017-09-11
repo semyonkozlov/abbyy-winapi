@@ -30,7 +30,10 @@
     <ClCompile Include="MemoryScanner.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CSelectProcDialog.cpp">
+    <ClCompile Include="SelectProcDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ProcsList.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -50,7 +53,10 @@
     <ClInclude Include="Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CSelectProcDialog.h">
+    <ClInclude Include="SelectProcDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ProcsList.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
