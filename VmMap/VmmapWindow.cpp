@@ -16,7 +16,9 @@ CVmMapWindow::CVmMapWindow() :
     memoryScanner(),
     mainWindow( nullptr ),
     listWindow( nullptr ),
-    dialogWindow( nullptr )
+    dialogWindow( nullptr ),
+    shouldExpandAll( false ),
+    memoryMap()
 {
 }
 
@@ -127,5 +129,14 @@ void CVmMapWindow::updateMemoryMap( int procId )
 {
     memoryScanner.AttachToProcess( procId );
 
-    
+    memoryMap.clear();
+    CAllocationInfo allocationInfo{};
+
+    void* currentAddress = nullptr;
+    while( memoryScanner.GetAllocationInfo( currentAddress, &allocationInfo ) ) {
+        memoryMap.push_back( std::move( allocationInfo ) );
+        allocationInfo = std::move( CAllocationInfo{} );
+    }
+
+    memoryScanner.DetachFromProcess();
 }

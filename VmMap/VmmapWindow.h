@@ -37,6 +37,8 @@ private:
     HWND listWindow;
     HWND dialogWindow;
 
+    bool shouldExpandAll;
+
     std::vector<CAllocationInfo> memoryMap;
     void updateMemoryMap( int procId );
 };

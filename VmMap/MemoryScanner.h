@@ -33,7 +33,7 @@ public:
     bool AttachToProcess( int procId );
     void DetachFromProcess();
 
-    void GetAllocationInfo( _In_ const void* memory, _Out_ CAllocationInfo* allocationInfo ) const;
+    bool GetAllocationInfo( _In_ const void* memory, _Out_ CAllocationInfo* allocationInfo ) const;
 
 private:
     static const struct CSystemInfo : SYSTEM_INFO {

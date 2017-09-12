@@ -37,7 +37,8 @@ HWND CListView::Create( HWND parent )
         this );
     assert( listView != nullptr );
 
-    SetColumns( {
+    // TODO
+    SetColumns( { 
         TEXT( "Address" ),
         TEXT( "Type" ),
         TEXT( "Size" ),
@@ -54,7 +55,7 @@ void CListView::Show( int cmdShow ) const
     ShowWindow( listView, cmdShow );
 }
 
-void CListView::SetColumns( const std::vector<CString>& columnTitles )
+void CListView::SetColumns( const CItem& columnTitles )
 {
     RECT rect;
     GetClientRect( listView, &rect );
@@ -73,7 +74,7 @@ void CListView::SetColumns( const std::vector<CString>& columnTitles )
     }
 }
 
-void CListView::AddItem( const std::vector<CString>& item )
+void CListView::AddItem( const CItem& item )
 {
     int lastIndex = ListView_GetItemCount( listView );
 

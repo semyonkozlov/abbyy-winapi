@@ -23,11 +23,13 @@ void CMemoryScanner::DetachFromProcess()
     process = nullptr;
 }
 
-void CMemoryScanner::GetAllocationInfo( const void* memory, CAllocationInfo* regionInfo ) const
+bool CMemoryScanner::GetAllocationInfo( const void* memory, CAllocationInfo* regionInfo ) const
 {
     CBlockInfo blockInfo;
     int queryStatus = VirtualQueryEx( process, memory, &blockInfo, sizeof( CBlockInfo ) );
-    assert( queryStatus != 0 );
+    if( queryStatus != sizeof( CBlockInfo ) ) {
+        return false;
+    }
 
     regionInfo->AllocationBaseAddress = blockInfo.AllocationBase;
     auto currentAddress = static_cast<const BYTE*>( blockInfo.AllocationBase );
@@ -38,7 +40,7 @@ void CMemoryScanner::GetAllocationInfo( const void* memory, CAllocationInfo* reg
     while( VirtualQueryEx( process, currentAddress, &blockInfo, sizeof( CBlockInfo ) == sizeof( CBlockInfo ) ) )
     {
         if( blockInfo.AllocationBase != regionInfo->AllocationBaseAddress ) {
-            break;
+            return true;
         }
 
         regionInfo->NumBlocks++;
@@ -51,12 +53,13 @@ void CMemoryScanner::GetAllocationInfo( const void* memory, CAllocationInfo* reg
         if( regionInfo->AllocationType == MEM_PRIVATE ) { 
             regionInfo->AllocationType = blockInfo.Type;
         }
-
         currentAddress += blockInfo.RegionSize;
 
         regionInfo->BlocksInfo.push_back( blockInfo );
     }
     regionInfo->IsStack = regionInfo->NumGuardedBlocks > 0;
+
+    return false;
 }
 
 CAllocationInfo::CAllocationInfo() :
