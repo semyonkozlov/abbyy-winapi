@@ -12,7 +12,8 @@ const CString CVmMapWindow::className = TEXT( "VMMAP" );
 CVmMapWindow::CVmMapWindow() :
     windowTitle(),
     selectProcDialog(),
-    procsList(),
+    memoryBlocksList(),
+    memoryScanner(),
     mainWindow( nullptr ),
     listWindow( nullptr ),
     dialogWindow( nullptr )
@@ -53,7 +54,7 @@ HWND CVmMapWindow::Create()
         this );
     assert( mainWindow != nullptr );
 
-    listWindow = procsList.Create( mainWindow );
+    listWindow = memoryBlocksList.Create( mainWindow );
     
     dialogWindow = selectProcDialog.Create( mainWindow );
 
@@ -63,12 +64,12 @@ HWND CVmMapWindow::Create()
 void CVmMapWindow::Show( int cmdShow ) const
 {
     ShowWindow( mainWindow, cmdShow );
-    procsList.Show( cmdShow );
+    memoryBlocksList.Show( cmdShow );
 }
 
-bool CVmMapWindow::IsDialogMessage( LPMSG messagePtr ) const
+void CVmMapWindow::OnCreate()
 {
-    return ::IsDialogMessage( dialogWindow, messagePtr );
+    // TODO
 }
 
 void CVmMapWindow::OnDestroy()
@@ -102,6 +103,11 @@ LRESULT CVmMapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPAR
 
     vmmap = reinterpret_cast<CVmMapWindow*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
     switch( message ) { // TODO
+        case WM_CREATE:
+        {
+            vmmap->OnCreate();
+            return EXIT_SUCCESS;
+        }
         case WM_SIZE:
         {
             vmmap->OnSize();
@@ -115,4 +121,11 @@ LRESULT CVmMapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPAR
         default:
             return DefWindowProc( handle, message, wParam, lParam );
     }
+}
+
+void CVmMapWindow::updateMemoryMap( int procId )
+{
+    memoryScanner.AttachToProcess( procId );
+
+    
 }

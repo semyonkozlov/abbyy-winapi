@@ -7,9 +7,9 @@
 
 #include "Utils.h"
 
-class CProcsList {
+class CListView {
 public:
-    CProcsList();
+    CListView();
 
     HWND Create( HWND parent );
     void Show( int cmdShow ) const;

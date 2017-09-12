@@ -11,7 +11,7 @@ int WINAPI _tWinMain( HINSTANCE instance, HINSTANCE prevInstance, LPTSTR cmdLine
     CVmMapWindow::RegisterClass();
 
     CVmMapWindow vmmap;
-    vmmap.Create();
+    HWND vmmapWindow = vmmap.Create();
 
     vmmap.Show( cmdShow );
 
@@ -21,7 +21,7 @@ int WINAPI _tWinMain( HINSTANCE instance, HINSTANCE prevInstance, LPTSTR cmdLine
         assert( getMessageStatus != -1 );
 
         // TODO: accelerator support
-        if( !vmmap.IsDialogMessage( &message ) ) {
+        if( !IsDialogMessage( vmmapWindow, &message ) ) {
             TranslateMessage( &message );
             DispatchMessage( &message );
         }

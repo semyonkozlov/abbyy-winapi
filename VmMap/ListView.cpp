@@ -4,24 +4,24 @@
 #include <CommCtrl.h>
 
 #include "Resource.h"
-#include "ProcsList.h"
+#include "ListView.h"
 
 #pragma comment(lib, "ComCtl32.Lib")
 
-CProcsList::CProcsList() : 
+CListView::CListView() : 
     listView( nullptr )
 {
 }
 
-HWND CProcsList::Create( HWND parent )
+HWND CListView::Create( HWND parent )
 {
     INITCOMMONCONTROLSEX icex;
     icex.dwSize = sizeof( INITCOMMONCONTROLSEX );
     icex.dwICC = ICC_LISTVIEW_CLASSES;
     InitCommonControlsEx( &icex );
 
-    RECT clientRect;
-    GetClientRect( parent, &clientRect );
+    RECT rect;
+    GetClientRect( parent, &rect );
 
     listView = CreateWindow(
         WC_LISTVIEW,
@@ -29,24 +29,32 @@ HWND CProcsList::Create( HWND parent )
         WS_CHILD | LVS_REPORT | LVS_EDITLABELS,
         0,
         0,
-        clientRect.right - clientRect.left,
-        clientRect.bottom - clientRect.top,
+        rect.right - rect.left,
+        rect.bottom - rect.top,
         parent,
         reinterpret_cast<HMENU>( IDC_LISTVIEW ),
         GetModuleHandle( nullptr ),  // TODO replace with const static variable
         this );
     assert( listView != nullptr );
 
-    SetColumns( { TEXT( "Address" ), TEXT( "Type" ), TEXT( "Size" ), TEXT( "Protection" ) } );
+    SetColumns( {
+        TEXT( "Address" ),
+        TEXT( "Type" ),
+        TEXT( "Size" ),
+        TEXT( "Blocks" ),
+        TEXT( "Protection" ),
+        TEXT( "Details" )
+    } );
+
     return listView;
 }
 
-void CProcsList::Show( int cmdShow ) const
+void CListView::Show( int cmdShow ) const
 {
     ShowWindow( listView, cmdShow );
 }
 
-void CProcsList::SetColumns( const std::vector<CString>& columnTitles )
+void CListView::SetColumns( const std::vector<CString>& columnTitles )
 {
     RECT rect;
     GetClientRect( listView, &rect );
@@ -65,7 +73,7 @@ void CProcsList::SetColumns( const std::vector<CString>& columnTitles )
     }
 }
 
-void CProcsList::AddItem( const std::vector<CString>& item )
+void CListView::AddItem( const std::vector<CString>& item )
 {
     int lastIndex = ListView_GetItemCount( listView );
 

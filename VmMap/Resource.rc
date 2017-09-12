@@ -7,7 +7,7 @@ IDR_MENU MENU
 BEGIN
   POPUP "&File"
   BEGIN
-    MENUITEM "Select Process...", ID_SELECT_PROCESS
+    MENUITEM "Select &Process...", ID_SELECT_PROCESS
     MENUITEM "&Open...", ID_OPEN
     MENUITEM "&Save", ID_SAVE
     MENUITEM "Save &As...", ID_SAVE_AS
@@ -34,4 +34,4 @@ BEGIN
   END
 END
 
-IDI_ICON ICON "texteditor.ico"
+IDI_ICON ICON "vmmap.ico"

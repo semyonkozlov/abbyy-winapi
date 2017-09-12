@@ -2,9 +2,11 @@
 
 #include <Windows.h>
 
-class CSelectProcDialog {
+#include "ListView.h"
+
+class CSelectionDialog {
 public:
-    CSelectProcDialog();
+    CSelectionDialog();
 
     HWND Create( HWND parent );
     void Show( int cmdShow ) const;
@@ -15,5 +17,8 @@ protected:
 private:
     static INT_PTR CALLBACK dialogProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam );
 
+    CListView procsList;
+
     HWND dialog;
+    HWND list;
 };

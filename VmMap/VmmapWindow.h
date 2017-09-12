@@ -2,8 +2,9 @@
 
 #include <Windows.h>
 
-#include "SelectProcDialog.h"
-#include "ProcsList.h"
+#include "SelectionDialog.h"
+#include "ListView.h"
+#include "MemoryScanner.h"
 #include "Utils.h"
 
 class CVmMapWindow {
@@ -15,9 +16,8 @@ public:
     HWND Create();
     void Show( int cmdShow ) const;
 
-    bool IsDialogMessage( LPMSG messagePtr ) const;
-
 protected:
+    void OnCreate();
     void OnDestroy();
     void OnSize();
 
@@ -28,10 +28,15 @@ private:
 
     CString windowTitle;
 
-    CSelectProcDialog selectProcDialog;
-    CProcsList procsList;
+    CSelectionDialog selectProcDialog;
+    CListView memoryBlocksList;
+
+    CMemoryScanner memoryScanner;
 
     HWND mainWindow;
     HWND listWindow;
     HWND dialogWindow;
+
+    std::vector<CAllocationInfo> memoryMap;
+    void updateMemoryMap( int procId );
 };

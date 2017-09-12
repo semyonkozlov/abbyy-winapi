@@ -1,21 +1,41 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include <Windows.h>
 
-#include "MemoryInfo.h"
+#include "Utils.h"
+
+using CBlockInfo = MEMORY_BASIC_INFORMATION;
+
+struct CAllocationInfo {
+    CAllocationInfo();
+
+    void* AllocationBaseAddress;
+    int AllocationSize;
+
+    DWORD AllocationType;
+    DWORD AllocationProtection;
+
+    int NumBlocks;
+    int NumGuardedBlocks;
+
+    bool IsStack;
+
+    std::vector<CBlockInfo> BlocksInfo;
+};
 
 class CMemoryScanner {
 public:
     CMemoryScanner();
 
-    void AttachToProcess( HANDLE process );
-    void GetMemoryInfo( _In_ const void* memory, _Out_ CMemoryInfo* memoryInfo ) const;
+    bool AttachToProcess( int procId );
+    void DetachFromProcess();
+
+    void GetAllocationInfo( _In_ const void* memory, _Out_ CAllocationInfo* allocationInfo ) const;
 
 private:
-    void getRegionInfo( _In_ const void* regionBaseAdress, _Out_ CMemoryInfo* memoryInfo ) const;
-
     static const struct CSystemInfo : SYSTEM_INFO {
         CSystemInfo()
         {

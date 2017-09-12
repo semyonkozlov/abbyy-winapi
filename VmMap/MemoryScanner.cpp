@@ -1,44 +1,72 @@
+#include <cassert>
+
+#include <Windows.h>
+
 #include "MemoryScanner.h"
 
-CMemoryScanner::CMemoryScanner() : process( nullptr )
+CMemoryScanner::CMemoryScanner() :
+    process( nullptr )
 {
 }
 
-void CMemoryScanner::AttachToProcess( HANDLE process )
+bool CMemoryScanner::AttachToProcess( int procId )
 {
+    process = OpenProcess( PROCESS_QUERY_INFORMATION, FALSE, procId );
+    assert( process != nullptr ); // TODO
+
+    return process;
 }
 
-void CMemoryScanner::GetMemoryInfo( const void* memory, CMemoryInfo* memoryInfo ) const
+void CMemoryScanner::DetachFromProcess()
 {
-
+    CloseHandle( process );
+    process = nullptr;
 }
 
-void CMemoryScanner::getRegionInfo( const void* regionBaseAddress, CMemoryInfo* memoryInfo ) const
+void CMemoryScanner::GetAllocationInfo( const void* memory, CAllocationInfo* regionInfo ) const
 {
-    MEMORY_BASIC_INFORMATION blockInfo;
-    auto currentBlockAddress = static_cast<const BYTE*>( regionBaseAddress );
+    CBlockInfo blockInfo;
+    int queryStatus = VirtualQueryEx( process, memory, &blockInfo, sizeof( CBlockInfo ) );
+    assert( queryStatus != 0 );
 
-    // while in the same region
-    do {
-        auto queryStatus = VirtualQueryEx( process, currentBlockAddress, &blockInfo, sizeof( blockInfo ) );
-        if( queryStatus != sizeof( blockInfo ) ) {
+    regionInfo->AllocationBaseAddress = blockInfo.AllocationBase;
+    auto currentAddress = static_cast<const BYTE*>( blockInfo.AllocationBase );
+
+    regionInfo->AllocationType = blockInfo.Type;
+    regionInfo->AllocationProtection = blockInfo.AllocationProtect;
+
+    while( VirtualQueryEx( process, currentAddress, &blockInfo, sizeof( CBlockInfo ) == sizeof( CBlockInfo ) ) )
+    {
+        if( blockInfo.AllocationBase != regionInfo->AllocationBaseAddress ) {
             break;
         }
 
-        ++memoryInfo->NumBlocks;
-        memoryInfo->RegionSize += blockInfo.RegionSize;
+        regionInfo->NumBlocks++;
+        regionInfo->AllocationSize += blockInfo.RegionSize;
 
         if( (blockInfo.Protect & PAGE_GUARD) == PAGE_GUARD ) {
-            ++memoryInfo->NumGuardedBlocks;
+            regionInfo->NumGuardedBlocks++;
         }
 
-        // TODO
-        if( memoryInfo->RegionType == MEM_PRIVATE ) {
-            memoryInfo->RegionType = blockInfo.Type;
+        if( regionInfo->AllocationType == MEM_PRIVATE ) { 
+            regionInfo->AllocationType = blockInfo.Type;
         }
 
-        currentBlockAddress += blockInfo.RegionSize;
-    } while( blockInfo.AllocationBase == regionBaseAddress );
+        currentAddress += blockInfo.RegionSize;
 
-    memoryInfo->IsStack = memoryInfo->NumGuardedBlocks > 0;
+        regionInfo->BlocksInfo.push_back( blockInfo );
+    }
+    regionInfo->IsStack = regionInfo->NumGuardedBlocks > 0;
+}
+
+CAllocationInfo::CAllocationInfo() :
+    AllocationBaseAddress( nullptr ),
+    AllocationSize( 0 ),
+    AllocationType( 0 ),
+    AllocationProtection( 0 ),
+    NumBlocks( 0 ),
+    NumGuardedBlocks( 0 ),
+    IsStack( false ),
+    BlocksInfo()
+{
 }
