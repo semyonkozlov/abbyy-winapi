@@ -33,7 +33,7 @@
     <ClCompile Include="SelectionDialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ItemConverter.cpp">
+    <ClCompile Include="Converter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,7 +56,7 @@
     <ClInclude Include="SelectionDialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ItemConverter.h">
+    <ClInclude Include="Converter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -37,7 +37,8 @@ bool CMemoryScanner::GetAllocationInfo( const void* memory, CAllocationInfo* reg
     regionInfo->AllocationType = blockInfo.Type;
     regionInfo->AllocationProtection = blockInfo.AllocationProtect;
 
-    while( VirtualQueryEx( process, currentAddress, &blockInfo, sizeof( CBlockInfo ) == sizeof( CBlockInfo ) ) )
+    ZeroMemory( &blockInfo, sizeof( CBlockInfo ) );
+    while( VirtualQueryEx( process, currentAddress, &blockInfo, sizeof( CBlockInfo ) ) == sizeof( CBlockInfo ) )
     {
         if( blockInfo.AllocationBase != regionInfo->AllocationBaseAddress ) {
             return true;
@@ -56,6 +57,8 @@ bool CMemoryScanner::GetAllocationInfo( const void* memory, CAllocationInfo* reg
         currentAddress += blockInfo.RegionSize;
 
         regionInfo->BlocksInfo.push_back( blockInfo );
+
+        ZeroMemory( &blockInfo, sizeof( CBlockInfo ) );
     }
     regionInfo->IsStack = regionInfo->NumGuardedBlocks > 0;
 

@@ -139,7 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ItemConverter.cpp" />
+    <ClCompile Include="Converter.cpp" />
     <ClCompile Include="ListView.cpp" />
     <ClCompile Include="SelectionDialog.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -148,7 +148,7 @@
     <ClCompile Include="VmMapWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ItemConverter.h" />
+    <ClInclude Include="Converter.h" />
     <ClInclude Include="ListView.h" />
     <ClInclude Include="SelectionDialog.h" />
     <ClInclude Include="MemoryScanner.h" />

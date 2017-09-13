@@ -18,8 +18,9 @@ public:
 
 protected:
     void OnCreate();
-    void OnDestroy();
     void OnSize();
+    void OnCommand( WPARAM wParam );
+    void OnDestroy();
 
 private:
     static const CString className;
