@@ -4,6 +4,8 @@
 
 #include "MemoryScanner.h"
 
+const CMemoryScanner::CSystemInfo CMemoryScanner::systemInfo;
+
 CMemoryScanner::CMemoryScanner() :
     process( nullptr )
 {
@@ -23,56 +25,50 @@ void CMemoryScanner::DetachFromProcess()
     process = nullptr;
 }
 
-bool CMemoryScanner::GetAllocationInfo( const void* memory, CAllocationInfo* regionInfo ) const
+bool CMemoryScanner::GetRegionInfo( const void* memory, CRegionInfo* regionInfo ) const
 {
-    CBlockInfo blockInfo;
-    int queryStatus = VirtualQueryEx( process, memory, &blockInfo, sizeof( CBlockInfo ) );
-    if( queryStatus != sizeof( CBlockInfo ) ) {
+    int queryStatus = VirtualQueryEx( process, memory, regionInfo, sizeof( CRegionInfo ) );
+    if( queryStatus != sizeof( CRegionInfo ) ) {
         return false;
     }
 
-    regionInfo->AllocationBaseAddress = blockInfo.AllocationBase;
-    auto currentAddress = static_cast<const BYTE*>( blockInfo.AllocationBase );
-
-    regionInfo->AllocationType = blockInfo.Type;
-    regionInfo->AllocationProtection = blockInfo.AllocationProtect;
-
-    ZeroMemory( &blockInfo, sizeof( CBlockInfo ) );
-    while( VirtualQueryEx( process, currentAddress, &blockInfo, sizeof( CBlockInfo ) ) == sizeof( CBlockInfo ) )
-    {
-        if( blockInfo.AllocationBase != regionInfo->AllocationBaseAddress ) {
-            return true;
-        }
-
-        regionInfo->NumBlocks++;
-        regionInfo->AllocationSize += blockInfo.RegionSize;
-
-        if( (blockInfo.Protect & PAGE_GUARD) == PAGE_GUARD ) {
-            regionInfo->NumGuardedBlocks++;
-        }
-
-        if( regionInfo->AllocationType == MEM_PRIVATE ) { 
-            regionInfo->AllocationType = blockInfo.Type;
-        }
-        currentAddress += blockInfo.RegionSize;
-
-        regionInfo->BlocksInfo.push_back( blockInfo );
-
-        ZeroMemory( &blockInfo, sizeof( CBlockInfo ) );
+    switch( regionInfo->State ) {
+        case MEM_FREE:
+            regionInfo->AllocationBase = const_cast<PVOID>( memory );
+            regionInfo->Protect = 0;
+            break;
+        case MEM_RESERVE:
+            regionInfo->Protect = regionInfo->AllocationProtect;
+            break;
+        case MEM_COMMIT:
+            break;
+        default:
+            return false;
     }
-    regionInfo->IsStack = regionInfo->NumGuardedBlocks > 0;
 
-    return false;
+    return true;
 }
 
-CAllocationInfo::CAllocationInfo() :
-    AllocationBaseAddress( nullptr ),
-    AllocationSize( 0 ),
-    AllocationType( 0 ),
-    AllocationProtection( 0 ),
-    NumBlocks( 0 ),
-    NumGuardedBlocks( 0 ),
-    IsStack( false ),
-    BlocksInfo()
+std::vector<CRegionInfo> CMemoryScanner::GetMemoryMap() const
 {
+    std::vector<CRegionInfo> memoryMap;
+    CRegionInfo regionInfo;
+    long long regionSize = 0;
+    int i = 0; // TODO
+
+    for( BYTE* currentAddress = 0;
+        GetRegionInfo( currentAddress, &regionInfo );
+        currentAddress += regionSize ) 
+    {
+        memoryMap.push_back( regionInfo );
+        regionSize = regionInfo.RegionSize;
+        //ZeroMemory( &regionInfo, sizeof( CRegionInfo ) );
+    }
+
+    return memoryMap;
+}
+
+CRegionInfo::CRegionInfo()
+{
+    ZeroMemory( this, sizeof( CRegionInfo ) );
 }

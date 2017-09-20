@@ -2,6 +2,7 @@
 
 #include <Windows.h>
 #include <CommCtrl.h>
+#include <windowsx.h>
 
 #include "Utils.h"
 #include "Converter.h"
@@ -99,19 +100,27 @@ void CVmMapWindow::OnCommand( WPARAM wParam )
     switch( LOWORD( wParam ) ) {
         case ID_SELECT_PROCESS:
         {
-            int procId = 9848;//GetCurrentProcessId();
+            int procId = 6968;// GetCurrentProcessId();
 
-            updateMemoryMap( procId );
+            memoryScanner.AttachToProcess( procId );
+            memoryMap = memoryScanner.GetMemoryMap();
 
-            for( const auto& allocationInfo : memoryMap ) {
-                memoryBlocksList.AddItem( CConverter::AllocationInfoToItem( allocationInfo ) );
-                if( shouldExpandAll ) {
-                    for( const auto& blockInfo : allocationInfo.BlocksInfo ) {
-                        memoryBlocksList.AddItem( CConverter::BlockInfoToItem( blockInfo ) );
-                    }
-                }
+            SetWindowRedraw( listWindow, FALSE );
+            memoryBlocksList.DeleteAllItems();
+            for( const auto& memoryInfo : memoryMap ) {
+                memoryBlocksList.AddItem( CConverter::RegionInfoToItem( memoryInfo ) );
             }
+            SetWindowRedraw( listWindow, TRUE );
+
+            memoryScanner.DetachFromProcess();
+
             break;
+        }
+        case ID_QUICK_HELP:
+        {
+            CString text = TEXT( "Hi!" );
+
+            MessageBox( mainWindow, text.c_str(), TEXT( "Hi!" ), MB_OK );
         }
     }
 }
@@ -153,22 +162,3 @@ LRESULT CVmMapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPAR
     }
 }
 
-void CVmMapWindow::updateMemoryMap( int procId )
-{
-    memoryScanner.AttachToProcess( procId );
-
-    memoryMap.clear();
-    CAllocationInfo allocationInfo{};
-
-    void* currentAddress = nullptr;
-    //while( memoryScanner.GetAllocationInfo( currentAddress, &allocationInfo ) ) { TODO
-    for( int i = 0; i < 1000; ++i ) {
-        memoryScanner.GetAllocationInfo( currentAddress, &allocationInfo );
-        currentAddress = (BYTE*)currentAddress + allocationInfo.AllocationSize;
-
-        memoryMap.push_back( allocationInfo );
-        allocationInfo = CAllocationInfo{};
-    }
-
-    memoryScanner.DetachFromProcess();
-}

@@ -4,7 +4,6 @@
 #include <Windows.h>
 
 #include "VmMapWindow.h"
-#include "Utils.h"
 
 int WINAPI _tWinMain( HINSTANCE instance, HINSTANCE prevInstance, LPTSTR cmdLine, int cmdShow )
 {

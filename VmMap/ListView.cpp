@@ -90,3 +90,8 @@ void CListView::AddItem( const CItem& item )
         ListView_SetItemText( listView, lastIndex, i, const_cast<LPTSTR>( item[i].c_str() ) );
     }
 }
+
+void CListView::DeleteAllItems()
+{
+    ListView_DeleteAllItems( listView );
+}

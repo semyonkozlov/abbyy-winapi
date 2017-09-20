@@ -19,6 +19,8 @@ public:
     void SetColumns( const CItem& columnTitles );
     void AddItem( const CItem& item );
 
+    void DeleteAllItems();
+
 private:
     HWND listView;
 };

@@ -7,23 +7,9 @@
 
 #include "Utils.h"
 
-using CBlockInfo = MEMORY_BASIC_INFORMATION;
-
-struct CAllocationInfo {
-    CAllocationInfo();
-
-    void* AllocationBaseAddress;
-    int AllocationSize;
-
-    DWORD AllocationType;
-    DWORD AllocationProtection;
-
-    int NumBlocks;
-    int NumGuardedBlocks;
-
-    bool IsStack;
-
-    std::vector<CBlockInfo> BlocksInfo;
+struct CRegionInfo : MEMORY_BASIC_INFORMATION
+{
+    CRegionInfo();
 };
 
 class CMemoryScanner {
@@ -33,9 +19,16 @@ public:
     bool AttachToProcess( int procId );
     void DetachFromProcess();
 
-    bool GetAllocationInfo( _In_ const void* memory, _Out_ CAllocationInfo* allocationInfo ) const;
+    bool GetRegionInfo( _In_ const void* memory, _Out_ CRegionInfo* regionInfo ) const;
+    std::vector<CRegionInfo> GetMemoryMap() const;
 
 private:
+    static const struct CSystemInfo : SYSTEM_INFO {
+        CSystemInfo()
+        {
+            GetSystemInfo( this );
+        }
+    } systemInfo;
 
     HANDLE process;
 };

@@ -40,6 +40,5 @@ private:
 
     bool shouldExpandAll;
 
-    std::vector<CAllocationInfo> memoryMap;
-    void updateMemoryMap( int procId );
+    std::vector<CRegionInfo> memoryMap;
 };

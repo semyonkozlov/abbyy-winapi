@@ -3,51 +3,51 @@
 
 #include "Converter.h"
 
-CItem CConverter::BlockInfoToItem( const CBlockInfo& blockInfo )
+CItem CConverter::RegionInfoToItem( const CRegionInfo& regionInfo )
 {
     CStringStream stream;
 
-    stream << std::hex << blockInfo.AllocationBase;
+    stream << std::hex << regionInfo.BaseAddress;
     CString address = CString( TEXT( "    " ) ) + stream.str();
     stream.str( {} );
 
-    CString type = MemTypeToString( blockInfo.State == MEM_COMMIT ? blockInfo.Type : blockInfo.State );
+    CString type = MemTypeToString( regionInfo.State == MEM_COMMIT ? regionInfo.Type : regionInfo.State );
 
-    stream << std::dec << blockInfo.RegionSize;
+    stream << std::dec << regionInfo.RegionSize / 1024 << TEXT( " K" );
     CString size = stream.str();
 
     CString blocks{};
 
-    CString protection = MemProtectionToString( blockInfo.Protect );
+    CString protection = MemProtectionToString( regionInfo.Protect );
 
     CString details{};
 
     return { address, type, size, blocks, protection, details };
 }
-
-CItem CConverter::AllocationInfoToItem( const CAllocationInfo& allocationInfo )
-{
-    CStringStream stream;
-
-    stream << std::hex << allocationInfo.AllocationBaseAddress;
-    CString address = stream.str();
-    stream.str( {} );
-
-    CString type = MemTypeToString( allocationInfo.AllocationType );
-
-    stream << std::dec << allocationInfo.AllocationSize;
-    CString size = stream.str();
-    stream.str( {} );
-
-    stream  << allocationInfo.NumBlocks;
-    CString blocks = stream.str();
-
-    CString protection = MemProtectionToString( allocationInfo.AllocationProtection );
-
-    CString details{};
-
-    return { address, type, size, blocks, protection, details };
-}
+//
+//CItem CConverter::AllocationInfoToItem( const CAllocationInfo& allocationInfo )
+//{
+//    CStringStream stream;
+//
+//    stream << std::hex << allocationInfo.AllocationBaseAddress;
+//    CString address = stream.str();
+//    stream.str( {} );
+//
+//    CString type = MemTypeToString( allocationInfo.AllocationType );
+//
+//    stream << std::dec << allocationInfo.AllocationSize;
+//    CString size = stream.str();
+//    stream.str( {} );
+//
+//    stream  << allocationInfo.NumBlocks;
+//    CString blocks = stream.str();
+//
+//    CString protection = MemProtectionToString( allocationInfo.AllocationProtection );
+//
+//    CString details{};
+//
+//    return { address, type, size, blocks, protection, details };
+//}
 
 CString CConverter::MemTypeToString( DWORD type )
 {
@@ -58,7 +58,7 @@ CString CConverter::MemTypeToString( DWORD type )
             memTypeString = TEXT( "Free" );
             break;
         case MEM_RESERVE:
-            memTypeString = TEXT( "Reserve" );
+            memTypeString = TEXT( "Reserved" );
             break;
         case MEM_IMAGE:
             memTypeString = TEXT( "Image" );
@@ -106,7 +106,7 @@ CString CConverter::MemProtectionToString( DWORD protection )
             protectionString = TEXT( "----" ); 
             break;
         default:
-            protectionString = TEXT( "Unknown" );
+            protectionString = TEXT( "" );
     }
 
     // TODO : flags?
