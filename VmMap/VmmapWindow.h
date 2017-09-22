@@ -1,10 +1,13 @@
 #pragma once
 
+#include <map>
+
 #include <Windows.h>
 
 #include "SelectionDialog.h"
 #include "ListView.h"
 #include "MemoryScanner.h"
+#include "Converter.h"
 #include "Utils.h"
 
 class CVmMapWindow {
@@ -22,6 +25,8 @@ protected:
     void OnCommand( WPARAM wParam );
     void OnDestroy();
 
+    void OnCmdSelectProcess();
+
 private:
     static const CString className;
 
@@ -30,9 +35,10 @@ private:
     CString windowTitle;
 
     CSelectionDialog selectProcDialog;
-    CListView memoryBlocksList;
+    CListView memMapList;
 
     CMemoryScanner memoryScanner;
+    CConverter itemConverter;
 
     HWND mainWindow;
     HWND listWindow;
@@ -40,5 +46,6 @@ private:
 
     bool shouldExpandAll;
 
+    void updateListWindow();
     std::vector<CRegionInfo> memoryMap;
 };

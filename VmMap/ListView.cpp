@@ -74,20 +74,29 @@ void CListView::SetColumns( const CItem& columnTitles )
     }
 }
 
-void CListView::AddItem( const CItem& item )
+void CListView::AddItem( const CItem& item, int index )
 {
-    int lastIndex = ListView_GetItemCount( listView );
+    if( index == -1 ) {
+        index = ListView_GetItemCount( listView );
+    }
 
     LVITEM lvi;
     lvi.mask = LVIF_TEXT;
     lvi.cchTextMax = 256;
-    lvi.iItem = lastIndex;
+    lvi.iItem = index;
     lvi.pszText = const_cast<LPTSTR>( item[0].c_str() );
     lvi.iSubItem = 0;
 
     ListView_InsertItem( listView, &lvi );
-    for( int i = 1; i < item.size(); i++ ) {
-        ListView_SetItemText( listView, lastIndex, i, const_cast<LPTSTR>( item[i].c_str() ) );
+    for( int i = 1; i < item.size(); ++i ) {
+        ListView_SetItemText( listView, index, i, const_cast<LPTSTR>( item[i].c_str() ) );
+    }
+}
+
+void CListView::SetItem( const CItem& item, int index )
+{
+    for( int i = 0; i < item.size(); ++i ) {
+        ListView_SetItemText( listView, index, i, const_cast<LPTSTR>( item[i].c_str() ) );
     }
 }
 

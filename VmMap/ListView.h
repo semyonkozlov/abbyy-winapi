@@ -17,7 +17,8 @@ public:
     void Show( int cmdShow ) const;
 
     void SetColumns( const CItem& columnTitles );
-    void AddItem( const CItem& item );
+    void AddItem( const CItem& item, int index = -1 );
+    void SetItem( const CItem& item, int index );
 
     void DeleteAllItems();
 

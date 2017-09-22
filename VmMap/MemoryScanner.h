@@ -12,6 +12,20 @@ struct CRegionInfo : MEMORY_BASIC_INFORMATION
     CRegionInfo();
 };
 
+struct CAllocationInfo 
+{
+    CAllocationInfo();
+
+    void* AllocationBaseAddress;
+    long long AllocationSize;
+
+    DWORD AllocationProtection;
+    DWORD AllocationType;
+
+    int NumBlocks;
+    int NumGuardedBlocks;
+};
+
 class CMemoryScanner {
 public:
     CMemoryScanner();

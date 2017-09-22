@@ -21,7 +21,9 @@ bool CMemoryScanner::AttachToProcess( int procId )
 
 void CMemoryScanner::DetachFromProcess()
 {
-    CloseHandle( process );
+    if( process != nullptr) {
+        CloseHandle( process );
+    }
     process = nullptr;
 }
 
@@ -35,7 +37,9 @@ bool CMemoryScanner::GetRegionInfo( const void* memory, CRegionInfo* regionInfo 
     switch( regionInfo->State ) {
         case MEM_FREE:
             regionInfo->AllocationBase = const_cast<PVOID>( memory );
+            regionInfo->BaseAddress = const_cast<PVOID>( memory );
             regionInfo->Protect = 0;
+            regionInfo->Type = MEM_FREE;
             break;
         case MEM_RESERVE:
             regionInfo->Protect = regionInfo->AllocationProtect;
@@ -54,7 +58,6 @@ std::vector<CRegionInfo> CMemoryScanner::GetMemoryMap() const
     std::vector<CRegionInfo> memoryMap;
     CRegionInfo regionInfo;
     long long regionSize = 0;
-    int i = 0; // TODO
 
     for( BYTE* currentAddress = 0;
         GetRegionInfo( currentAddress, &regionInfo );
@@ -62,8 +65,8 @@ std::vector<CRegionInfo> CMemoryScanner::GetMemoryMap() const
     {
         memoryMap.push_back( regionInfo );
         regionSize = regionInfo.RegionSize;
-        //ZeroMemory( &regionInfo, sizeof( CRegionInfo ) );
     }
+    memoryMap.shrink_to_fit();
 
     return memoryMap;
 }
@@ -71,4 +74,9 @@ std::vector<CRegionInfo> CMemoryScanner::GetMemoryMap() const
 CRegionInfo::CRegionInfo()
 {
     ZeroMemory( this, sizeof( CRegionInfo ) );
+}
+
+CAllocationInfo::CAllocationInfo()
+{
+    ZeroMemory( this, sizeof( CAllocationInfo ) );
 }

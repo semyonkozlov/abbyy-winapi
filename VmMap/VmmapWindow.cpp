@@ -14,7 +14,7 @@ const CString CVmMapWindow::className = TEXT( "VMMAP" );
 CVmMapWindow::CVmMapWindow() :
     windowTitle(),
     selectProcDialog(),
-    memoryBlocksList(),
+    memMapList(),
     memoryScanner(),
     mainWindow( nullptr ),
     listWindow( nullptr ),
@@ -58,7 +58,7 @@ HWND CVmMapWindow::Create()
         this );
     assert( mainWindow != nullptr );
 
-    listWindow = memoryBlocksList.Create( mainWindow );
+    listWindow = memMapList.Create( mainWindow );
     
     dialogWindow = selectProcDialog.Create( mainWindow );
 
@@ -68,7 +68,7 @@ HWND CVmMapWindow::Create()
 void CVmMapWindow::Show( int cmdShow ) const
 {
     ShowWindow( mainWindow, cmdShow );
-    memoryBlocksList.Show( cmdShow );
+    memMapList.Show( cmdShow );
 }
 
 void CVmMapWindow::OnCreate()
@@ -79,6 +79,19 @@ void CVmMapWindow::OnCreate()
 void CVmMapWindow::OnDestroy()
 {
     PostQuitMessage( EXIT_SUCCESS );
+}
+
+void CVmMapWindow::OnCmdSelectProcess()
+{
+    memoryScanner.DetachFromProcess();
+
+    // TODO
+    int procId = GetCurrentProcessId();
+
+    memoryScanner.AttachToProcess( procId );
+
+    memoryMap = memoryScanner.GetMemoryMap();
+    updateListWindow();
 }
 
 void CVmMapWindow::OnSize()
@@ -100,27 +113,24 @@ void CVmMapWindow::OnCommand( WPARAM wParam )
     switch( LOWORD( wParam ) ) {
         case ID_SELECT_PROCESS:
         {
-            int procId = 6968;// GetCurrentProcessId();
-
-            memoryScanner.AttachToProcess( procId );
-            memoryMap = memoryScanner.GetMemoryMap();
-
-            SetWindowRedraw( listWindow, FALSE );
-            memoryBlocksList.DeleteAllItems();
-            for( const auto& memoryInfo : memoryMap ) {
-                memoryBlocksList.AddItem( CConverter::RegionInfoToItem( memoryInfo ) );
-            }
-            SetWindowRedraw( listWindow, TRUE );
-
-            memoryScanner.DetachFromProcess();
-
+            OnCmdSelectProcess();
             break;
         }
         case ID_QUICK_HELP:
         {
-            CString text = TEXT( "Hi!" );
-
-            MessageBox( mainWindow, text.c_str(), TEXT( "Hi!" ), MB_OK );
+            MessageBox( mainWindow, TEXT( "Hi!" ), TEXT( "Hi!" ), MB_OK );
+        }
+        case ID_EXPAND_ALL:
+        {
+            shouldExpandAll = true;
+            updateListWindow();
+            break;
+        }
+        case ID_COLLAPSE_ALL:
+        {
+            shouldExpandAll = false;
+            updateListWindow();
+            break;
         }
     }
 }
@@ -162,3 +172,51 @@ LRESULT CVmMapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPAR
     }
 }
 
+void CVmMapWindow::updateListWindow()
+{
+    int insertionIndex = 0, numAllocationLines = 0, numRegionLines = 0;
+    CAllocationInfo allocationInfo{};
+    allocationInfo.AllocationBaseAddress = (void*)1;
+    allocationInfo.AllocationType = MEM_FREE;
+
+    SetWindowRedraw( listWindow, FALSE );
+
+    memMapList.DeleteAllItems();
+   
+    for( int i = 0; i < memoryMap.size(); ++i ) {
+        if( allocationInfo.AllocationBaseAddress == memoryMap[i].AllocationBase ) {
+            if( allocationInfo.NumBlocks == 0 ) {
+                allocationInfo.AllocationType = memoryMap[i].Type;
+                allocationInfo.AllocationProtection = memoryMap[i].Protect;
+            }
+            if( allocationInfo.AllocationType == MEM_PRIVATE ) {
+                allocationInfo.AllocationType = memoryMap[i].Type;
+            }
+
+            allocationInfo.NumBlocks++;
+            allocationInfo.AllocationSize += memoryMap[i].RegionSize;
+
+            if( (memoryMap[i].Protect & PAGE_GUARD) == PAGE_GUARD ) {
+                allocationInfo.NumGuardedBlocks++;
+            }
+            
+            if( shouldExpandAll && memoryMap[i].Type != MEM_FREE ) {
+                memMapList.AddItem( itemConverter.RegionInfoToItem( memoryMap[i] ) );
+                ++numRegionLines;
+            }
+        } else {
+            memMapList.SetItem( itemConverter.AllocationInfoToItem( allocationInfo ), insertionIndex );
+            ZeroMemory( &allocationInfo, sizeof( CAllocationInfo ) );
+
+            allocationInfo.AllocationBaseAddress = memoryMap[i].AllocationBase;
+            memMapList.AddItem( itemConverter.AllocationInfoToItem( allocationInfo ) );
+            insertionIndex = numRegionLines + numAllocationLines;
+
+            ++numAllocationLines;
+            --i;
+        }
+    }
+    memMapList.SetItem( itemConverter.AllocationInfoToItem( allocationInfo ), insertionIndex );
+
+    SetWindowRedraw( listWindow, TRUE );
+}
