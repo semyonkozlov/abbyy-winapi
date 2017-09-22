@@ -19,6 +19,7 @@ CVmMapWindow::CVmMapWindow() :
     mainWindow( nullptr ),
     listWindow( nullptr ),
     dialogWindow( nullptr ),
+    processId( -1 ),
     shouldExpandAll( false ),
     memoryMap()
 {
@@ -78,18 +79,12 @@ void CVmMapWindow::OnCreate()
 
 void CVmMapWindow::OnDestroy()
 {
+    // TODO close handles
     PostQuitMessage( EXIT_SUCCESS );
 }
 
-void CVmMapWindow::OnCmdSelectProcess()
+void CVmMapWindow::OnCmdRefresh()
 {
-    memoryScanner.DetachFromProcess();
-
-    // TODO
-    int procId = GetCurrentProcessId();
-
-    memoryScanner.AttachToProcess( procId );
-
     memoryMap = memoryScanner.GetMemoryMap();
     updateListWindow();
 }
@@ -113,12 +108,22 @@ void CVmMapWindow::OnCommand( WPARAM wParam )
     switch( LOWORD( wParam ) ) {
         case ID_SELECT_PROCESS:
         {
-            OnCmdSelectProcess();
+            if( processId != -1 ) {
+                memoryScanner.DetachFromProcess();
+                toolhelp.DestroySnapshot();
+            }
+
+            processId = GetCurrentProcessId(); // TODO
+            memoryScanner.AttachToProcess( processId );
+            toolhelp.CreateSnapshot( processId );
+
+            OnCmdRefresh();
             break;
         }
         case ID_QUICK_HELP:
         {
-            MessageBox( mainWindow, TEXT( "Hi!" ), TEXT( "Hi!" ), MB_OK );
+            MessageBox( mainWindow, TEXT( "Help me, please..." ), TEXT( "HELP!" ), MB_OK );
+            break;
         }
         case ID_EXPAND_ALL:
         {
@@ -131,6 +136,20 @@ void CVmMapWindow::OnCommand( WPARAM wParam )
             shouldExpandAll = false;
             updateListWindow();
             break;
+        }
+        case ID_REFRESH:
+        {
+            OnCmdRefresh();
+            break;
+        }
+        case ID_EXIT:
+        {
+            OnDestroy();
+            break;
+        }
+        default:
+        {
+            MessageBox( mainWindow, TEXT( "What?" ), TEXT( "Error" ), MB_OK );
         }
     }
 }
@@ -175,14 +194,12 @@ LRESULT CVmMapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPAR
 void CVmMapWindow::updateListWindow()
 {
     int insertionIndex = 0, numAllocationLines = 0, numRegionLines = 0;
-    CAllocationInfo allocationInfo{};
-    allocationInfo.AllocationBaseAddress = (void*)1;
-    allocationInfo.AllocationType = MEM_FREE;
+    CAllocationInfo allocationInfo;
+    allocationInfo.AllocationBaseAddress = &insertionIndex; // just non-null pointer
 
     SetWindowRedraw( listWindow, FALSE );
 
     memMapList.DeleteAllItems();
-   
     for( int i = 0; i < memoryMap.size(); ++i ) {
         if( allocationInfo.AllocationBaseAddress == memoryMap[i].AllocationBase ) {
             if( allocationInfo.NumBlocks == 0 ) {
@@ -205,7 +222,10 @@ void CVmMapWindow::updateListWindow()
                 ++numRegionLines;
             }
         } else {
-            memMapList.SetItem( itemConverter.AllocationInfoToItem( allocationInfo ), insertionIndex );
+            CItem item = itemConverter.AllocationInfoToItem( allocationInfo );
+            item.back() = obtainAllocationDetails( allocationInfo );
+
+            memMapList.SetItem( item, insertionIndex );
             ZeroMemory( &allocationInfo, sizeof( CAllocationInfo ) );
 
             allocationInfo.AllocationBaseAddress = memoryMap[i].AllocationBase;
@@ -219,4 +239,26 @@ void CVmMapWindow::updateListWindow()
     memMapList.SetItem( itemConverter.AllocationInfoToItem( allocationInfo ), insertionIndex );
 
     SetWindowRedraw( listWindow, TRUE );
+    UpdateWindow( listWindow );
 }
+
+CString CVmMapWindow::obtainAllocationDetails( const CAllocationInfo& allocationInfo )
+{
+    CString details;
+    CModuleInfo moduleInfo;
+
+    if( allocationInfo.NumGuardedBlocks > 0 ) {
+        details = TEXT( "Thread stack" );
+    } else if( allocationInfo.AllocationType == MEM_IMAGE && 
+        toolhelp.FindModule( allocationInfo.AllocationBaseAddress, &moduleInfo ) ) 
+    {
+        details = moduleInfo.szExePath;
+    } else if( allocationInfo.AllocationType == MEM_MAPPED ) {
+        details = toolhelp.GetMappedFileName( allocationInfo.AllocationBaseAddress );
+    } /*else if( toolhelp.IsHeap( allocationInfo.AllocationBaseAddress ) ) {
+        details = TEXT( "Heap" );
+    }*/
+
+    return details;
+}
+

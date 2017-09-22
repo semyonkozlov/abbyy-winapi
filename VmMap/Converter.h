@@ -17,6 +17,8 @@ public:
 private:
     CStringStream stream;
 
-    static CString memTypeToString( DWORD type );
-    static CString memProtectionToString( DWORD protection );
+    CString memSizeToString( long long memSize );
+
+    CString memTypeToString( DWORD type ) const;
+    CString memProtectionToString( DWORD protection ) const;
 };

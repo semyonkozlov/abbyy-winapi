@@ -5,17 +5,13 @@
 
 CItem CConverter::RegionInfoToItem( const CRegionInfo& regionInfo, CString details )
 {
-    stream.str( {} );
-
     stream << std::hex << regionInfo.BaseAddress;
-    CString address = CString( TEXT( "    " ) ) + stream.str();
+    CString address = CString( TEXT( "      " ) ) + stream.str();
     stream.str( {} );
 
     CString type = memTypeToString( regionInfo.State == MEM_COMMIT ? regionInfo.Type : regionInfo.State );
 
-    stream << std::dec << regionInfo.RegionSize / 1024 << TEXT( " K" );
-    CString size = stream.str();
-    stream.str( {} );
+    CString size = memSizeToString( regionInfo.RegionSize );
 
     CString blocks{};
 
@@ -26,17 +22,13 @@ CItem CConverter::RegionInfoToItem( const CRegionInfo& regionInfo, CString detai
 
 CItem CConverter::AllocationInfoToItem( const CAllocationInfo& allocationInfo, CString details )
 {
-    stream.str( {} );
-
     stream << std::hex << allocationInfo.AllocationBaseAddress;
     CString address = stream.str();
     stream.str( {} );
 
     CString type = memTypeToString( allocationInfo.AllocationType );
 
-    stream << std::dec << allocationInfo.AllocationSize / 1024 << TEXT( " K");
-    CString size = stream.str();
-    stream.str( {} );
+    CString size = memSizeToString( allocationInfo.AllocationSize );
 
     if( allocationInfo.AllocationType != MEM_FREE ) {
         stream << allocationInfo.NumBlocks;
@@ -48,7 +40,21 @@ CItem CConverter::AllocationInfoToItem( const CAllocationInfo& allocationInfo, C
     return { address, type, size, blocks, protection, details };
 }
 
-CString CConverter::memTypeToString( DWORD type )
+CString CConverter::memSizeToString( long long memSize )
+{
+    auto defaultLocale = stream.getloc();
+    stream.imbue( std::locale( "" ) );
+
+    stream << std::dec << (memSize >> 10) << TEXT( " K" );
+    CString memSizeString = stream.str();
+
+    stream.imbue( defaultLocale );
+    stream.str( {} );
+
+    return memSizeString;
+}
+
+CString CConverter::memTypeToString( DWORD type ) const
 {
     CString memTypeString;
 
@@ -75,7 +81,7 @@ CString CConverter::memTypeToString( DWORD type )
     return memTypeString;
 }
 
-CString CConverter::memProtectionToString( DWORD protection )
+CString CConverter::memProtectionToString( DWORD protection ) const
 {
     CString protectionString;
 

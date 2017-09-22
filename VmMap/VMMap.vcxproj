@@ -144,6 +144,7 @@
     <ClCompile Include="SelectionDialog.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MemoryScanner.cpp" />
+    <ClCompile Include="Toolhelp.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="VmMapWindow.cpp" />
   </ItemGroup>
@@ -153,6 +154,7 @@
     <ClInclude Include="SelectionDialog.h" />
     <ClInclude Include="MemoryScanner.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="Toolhelp.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="VmMapWindow.h" />
   </ItemGroup>
