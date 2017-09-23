@@ -38,7 +38,6 @@ private:
 
     CMemoryScanner memoryScanner;
     CConverter itemConverter;
-    CToolhelp toolhelp;
 
     HWND mainWindow;
     HWND listWindow;
@@ -46,8 +45,7 @@ private:
 
     int processId;
     bool shouldExpandAll;
-    std::vector<CRegionInfo> memoryMap;
+    std::vector<CAllocationInfo> memoryMap;
 
     void updateListWindow();
-    CString obtainAllocationDetails( const CAllocationInfo& allocationInfo );
 };

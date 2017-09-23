@@ -1,10 +1,10 @@
 #pragma once
 
-#include <memory>
 #include <vector>
 
 #include <Windows.h>
 
+#include "Toolhelp.h"
 #include "Utils.h"
 
 struct CRegionInfo : MEMORY_BASIC_INFORMATION
@@ -14,9 +14,9 @@ struct CRegionInfo : MEMORY_BASIC_INFORMATION
 
 struct CAllocationInfo 
 {
-    CAllocationInfo();
+    CAllocationInfo() = default;
 
-    void* AllocationBaseAddress;
+    const void* AllocationBaseAddress;
     long long AllocationSize;
 
     DWORD AllocationProtection;
@@ -24,6 +24,13 @@ struct CAllocationInfo
 
     int NumBlocks;
     int NumGuardedBlocks;
+
+    CString Details;
+
+    std::vector<CRegionInfo> RegionsInfo;
+
+    void AddRregion( const CRegionInfo& regionInfo );
+    void Clear();
 };
 
 class CMemoryScanner {
@@ -34,7 +41,7 @@ public:
     void DetachFromProcess();
 
     bool GetRegionInfo( _In_ const void* memory, _Out_ CRegionInfo* regionInfo ) const;
-    std::vector<CRegionInfo> GetMemoryMap() const;
+    int GetMemoryMap( _Out_ std::vector<CAllocationInfo>* memoryMap ) const;
 
 private:
     static const struct CSystemInfo : SYSTEM_INFO {
@@ -45,4 +52,8 @@ private:
     } systemInfo;
 
     HANDLE process;
+
+    CToolhelp toolhelp;
+
+    bool obtainAllocationDetails( _Inout_ CAllocationInfo* allocationInfo ) const;
 };

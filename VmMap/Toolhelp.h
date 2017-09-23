@@ -4,7 +4,6 @@
 
 #include <Windows.h>
 #include <TlHelp32.h>
-#include <Psapi.h>
 
 #include "Utils.h"
 
@@ -21,7 +20,6 @@ public:
 
     bool FindModule( _In_ const void* allocationAddress, _Out_ CModuleInfo* moduleInfo ) const;
     bool IsHeap( const void* address ) const;
-    CString GetMappedFileName( const void* allocationAddress ) const;
 
 private:
     HANDLE snapshot;

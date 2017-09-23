@@ -20,7 +20,7 @@ CItem CConverter::RegionInfoToItem( const CRegionInfo& regionInfo, CString detai
     return { address, type, size, blocks, protection, details };
 }
 
-CItem CConverter::AllocationInfoToItem( const CAllocationInfo& allocationInfo, CString details )
+CItem CConverter::AllocationInfoToItem( const CAllocationInfo& allocationInfo )
 {
     stream << std::hex << allocationInfo.AllocationBaseAddress;
     CString address = stream.str();
@@ -34,13 +34,16 @@ CItem CConverter::AllocationInfoToItem( const CAllocationInfo& allocationInfo, C
         stream << allocationInfo.NumBlocks;
     }
     CString blocks = stream.str();
+    stream.str( {} );
+
+    CString details = allocationInfo.Details;
 
     CString protection = memProtectionToString( allocationInfo.AllocationProtection );
 
     return { address, type, size, blocks, protection, details };
 }
 
-CString CConverter::memSizeToString( long long memSize )
+CString CConverter::memSizeToString( long long memSize ) 
 {
     auto defaultLocale = stream.getloc();
     stream.imbue( std::locale( "" ) );

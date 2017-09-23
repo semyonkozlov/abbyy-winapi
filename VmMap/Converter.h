@@ -12,7 +12,7 @@ public:
     CConverter() = default;
 
     CItem RegionInfoToItem( const CRegionInfo& blockInfo, CString details = {} );
-    CItem AllocationInfoToItem( const CAllocationInfo& allocationInfo, CString details = {} );
+    CItem AllocationInfoToItem( const CAllocationInfo& allocationInfo );
 
 private:
     CStringStream stream;

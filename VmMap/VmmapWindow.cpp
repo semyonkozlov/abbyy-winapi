@@ -85,7 +85,7 @@ void CVmMapWindow::OnDestroy()
 
 void CVmMapWindow::OnCmdRefresh()
 {
-    memoryMap = memoryScanner.GetMemoryMap();
+    memoryScanner.GetMemoryMap( &memoryMap );
     updateListWindow();
 }
 
@@ -110,12 +110,10 @@ void CVmMapWindow::OnCommand( WPARAM wParam )
         {
             if( processId != -1 ) {
                 memoryScanner.DetachFromProcess();
-                toolhelp.DestroySnapshot();
             }
 
             processId = GetCurrentProcessId(); // TODO
             memoryScanner.AttachToProcess( processId );
-            toolhelp.CreateSnapshot( processId );
 
             OnCmdRefresh();
             break;
@@ -193,72 +191,19 @@ LRESULT CVmMapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPAR
 
 void CVmMapWindow::updateListWindow()
 {
-    int insertionIndex = 0, numAllocationLines = 0, numRegionLines = 0;
-    CAllocationInfo allocationInfo;
-    allocationInfo.AllocationBaseAddress = &insertionIndex; // just non-null pointer
-
     SetWindowRedraw( listWindow, FALSE );
 
     memMapList.DeleteAllItems();
-    for( int i = 0; i < memoryMap.size(); ++i ) {
-        if( allocationInfo.AllocationBaseAddress == memoryMap[i].AllocationBase ) {
-            if( allocationInfo.NumBlocks == 0 ) {
-                allocationInfo.AllocationType = memoryMap[i].Type;
-                allocationInfo.AllocationProtection = memoryMap[i].Protect;
+    for( auto&& allocationInfo : memoryMap ) {
+        memMapList.AddItem( itemConverter.AllocationInfoToItem( allocationInfo ) );
+
+        for( auto&& regionInfo : allocationInfo.RegionsInfo ) {
+            if( shouldExpandAll && regionInfo.Type != MEM_FREE ) {
+                memMapList.AddItem( itemConverter.RegionInfoToItem( regionInfo ) );
             }
-            if( allocationInfo.AllocationType == MEM_PRIVATE ) {
-                allocationInfo.AllocationType = memoryMap[i].Type;
-            }
-
-            allocationInfo.NumBlocks++;
-            allocationInfo.AllocationSize += memoryMap[i].RegionSize;
-
-            if( (memoryMap[i].Protect & PAGE_GUARD) == PAGE_GUARD ) {
-                allocationInfo.NumGuardedBlocks++;
-            }
-            
-            if( shouldExpandAll && memoryMap[i].Type != MEM_FREE ) {
-                memMapList.AddItem( itemConverter.RegionInfoToItem( memoryMap[i] ) );
-                ++numRegionLines;
-            }
-        } else {
-            CItem item = itemConverter.AllocationInfoToItem( allocationInfo );
-            item.back() = obtainAllocationDetails( allocationInfo );
-
-            memMapList.SetItem( item, insertionIndex );
-            ZeroMemory( &allocationInfo, sizeof( CAllocationInfo ) );
-
-            allocationInfo.AllocationBaseAddress = memoryMap[i].AllocationBase;
-            memMapList.AddItem( itemConverter.AllocationInfoToItem( allocationInfo ) );
-            insertionIndex = numRegionLines + numAllocationLines;
-
-            ++numAllocationLines;
-            --i;
         }
     }
-    memMapList.SetItem( itemConverter.AllocationInfoToItem( allocationInfo ), insertionIndex );
 
     SetWindowRedraw( listWindow, TRUE );
     UpdateWindow( listWindow );
 }
-
-CString CVmMapWindow::obtainAllocationDetails( const CAllocationInfo& allocationInfo )
-{
-    CString details;
-    CModuleInfo moduleInfo;
-
-    if( allocationInfo.NumGuardedBlocks > 0 ) {
-        details = TEXT( "Thread stack" );
-    } else if( allocationInfo.AllocationType == MEM_IMAGE && 
-        toolhelp.FindModule( allocationInfo.AllocationBaseAddress, &moduleInfo ) ) 
-    {
-        details = moduleInfo.szExePath;
-    } else if( allocationInfo.AllocationType == MEM_MAPPED ) {
-        details = toolhelp.GetMappedFileName( allocationInfo.AllocationBaseAddress );
-    } /*else if( toolhelp.IsHeap( allocationInfo.AllocationBaseAddress ) ) {
-        details = TEXT( "Heap" );
-    }*/
-
-    return details;
-}
-

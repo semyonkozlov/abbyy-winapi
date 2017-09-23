@@ -79,17 +79,6 @@ bool CToolhelp::IsHeap( const void* address ) const
     return false;
 }
 
-CString CToolhelp::GetMappedFileName( const void* allocationAddress ) const
-{
-    TCHAR fileName[MAX_PATH + 1];
-
-    if( ::GetMappedFileName( process, const_cast<void*>(allocationAddress), fileName, MAX_PATH ) ) { 
-        return { fileName };
-    } else {
-        return {};
-    }
-}
-
 CModuleInfo::CModuleInfo()
 {
     ZeroMemory( this, sizeof( CModuleInfo ) );

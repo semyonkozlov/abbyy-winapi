@@ -16,7 +16,7 @@ CString GetErrorText( DWORD errorCode )
         errorTextLength,
         nullptr );
 
-    return { errorText };
+    return errorText;
 }
 
 void ShowLastError()

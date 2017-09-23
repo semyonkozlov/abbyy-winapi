@@ -1,26 +1,31 @@
 #include <cassert>
 
 #include <Windows.h>
+#include <Psapi.h>
 
 #include "MemoryScanner.h"
 
 const CMemoryScanner::CSystemInfo CMemoryScanner::systemInfo;
 
 CMemoryScanner::CMemoryScanner() :
-    process( nullptr )
+    process( nullptr ),
+    toolhelp()
 {
 }
 
 bool CMemoryScanner::AttachToProcess( int procId )
 {
-    process = OpenProcess( PROCESS_QUERY_INFORMATION, FALSE, procId );
+    process = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, procId );
     assert( process != nullptr ); // TODO
+
+    toolhelp.CreateSnapshot( procId );
 
     return process;
 }
 
 void CMemoryScanner::DetachFromProcess()
 {
+    toolhelp.DestroySnapshot();
     CloseHandle( process );
 }
 
@@ -50,22 +55,59 @@ bool CMemoryScanner::GetRegionInfo( const void* memory, CRegionInfo* regionInfo 
     return true;
 }
 
-std::vector<CRegionInfo> CMemoryScanner::GetMemoryMap() const
+int CMemoryScanner::GetMemoryMap( std::vector<CAllocationInfo>* memoryMap ) const
 {
-    std::vector<CRegionInfo> memoryMap;
-    CRegionInfo regionInfo;
+    memoryMap->clear();
+
+    CRegionInfo regionInfo{};
+    CAllocationInfo allocationInfo{};
     long long regionSize = 0;
 
     for( const BYTE* currentAddress = 0;
         GetRegionInfo( currentAddress, &regionInfo );
         currentAddress += regionSize ) 
     {
-        memoryMap.push_back( regionInfo );
+        if( allocationInfo.AllocationBaseAddress == regionInfo.AllocationBase ) {
+            allocationInfo.AddRregion( regionInfo );
+        } else {
+            obtainAllocationDetails( &allocationInfo );
+            memoryMap->push_back( allocationInfo );
+            allocationInfo.Clear();
+
+            allocationInfo.AllocationBaseAddress = regionInfo.AllocationBase;
+            allocationInfo.AddRregion( regionInfo );
+        }
+
         regionSize = regionInfo.RegionSize;
     }
-    memoryMap.shrink_to_fit();
 
-    return memoryMap;
+    return memoryMap->size();
+}
+
+bool CMemoryScanner::obtainAllocationDetails( CAllocationInfo* allocationInfo ) const
+{
+    CModuleInfo moduleInfo;
+    TCHAR filename[MAX_PATH];
+
+    if( allocationInfo->NumGuardedBlocks > 0 ) {
+        allocationInfo->Details = TEXT( "Thread stack" );
+    } else if( allocationInfo->AllocationType == MEM_IMAGE &&
+        toolhelp.FindModule( allocationInfo->AllocationBaseAddress, &moduleInfo ) ) 
+    {
+        allocationInfo->Details = moduleInfo.szExePath;
+    } else if( allocationInfo->AllocationType == MEM_MAPPED &&
+        GetMappedFileName( process, const_cast<void*>(allocationInfo->AllocationBaseAddress), filename, MAX_PATH ) )
+    {
+        allocationInfo->Details = filename;
+    } else {
+        return false;
+    }
+
+     /*else if( toolhelp.IsHeap( allocationInfo.AllocationBaseAddress ) ) {
+        details = TEXT( "Heap" );
+        }*/
+    
+    return true;
 }
 
 CRegionInfo::CRegionInfo()
@@ -73,7 +115,37 @@ CRegionInfo::CRegionInfo()
     ZeroMemory( this, sizeof( CRegionInfo ) );
 }
 
-CAllocationInfo::CAllocationInfo()
+void CAllocationInfo::AddRregion( const CRegionInfo& regionInfo )
 {
-    ZeroMemory( this, sizeof( CAllocationInfo ) );
+    if( NumBlocks == 0 ) {
+        AllocationType = regionInfo.Type;
+        AllocationProtection = regionInfo.AllocationProtect;
+    }
+    if( AllocationType == MEM_PRIVATE ) {
+        AllocationType = regionInfo.Type;
+    }
+
+    ++NumBlocks;
+    AllocationSize += regionInfo.RegionSize;
+
+    if( (regionInfo.Protect & PAGE_GUARD) == PAGE_GUARD ) {
+        NumGuardedBlocks++;
+    }
+
+    RegionsInfo.push_back( regionInfo );
+}
+
+void CAllocationInfo::Clear()
+{
+    AllocationBaseAddress = 0;
+    AllocationSize = 0;
+
+    AllocationProtection = 0;
+    AllocationType = 0;
+
+    NumBlocks = 0;
+    NumGuardedBlocks = 0;
+
+    Details.clear();
+    RegionsInfo.clear();
 }
