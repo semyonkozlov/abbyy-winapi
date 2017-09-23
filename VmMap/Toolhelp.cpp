@@ -42,42 +42,42 @@ bool CToolhelp::FindModule( const void* allocationAddress, CModuleInfo* moduleIn
 
     return false;
 }
-
-bool CToolhelp::IsHeap( const void* address ) const
-{
-    HEAPLIST32 heapList;
-    MEMORY_BASIC_INFORMATION memoryInfo;
-    heapList.dwSize = sizeof( HEAPLIST32 );
-
-    if( Heap32ListFirst( snapshot, &heapList ) ) {
-        do {
-            HEAPENTRY32 heapEntry;
-            ZeroMemory( &heapEntry, sizeof( HEAPENTRY32 ) );
-            heapEntry.dwSize = sizeof( HEAPENTRY32 );
-
-            if( Heap32First( &heapEntry, processId, heapList.th32HeapID ) ) {
-                do {
-                    VirtualQueryEx( 
-                        process,
-                        reinterpret_cast<void*>( heapEntry.dwAddress ),
-                        &memoryInfo, 
-                        sizeof( MEMORY_BASIC_INFORMATION ) );
-
-                    if( memoryInfo.AllocationBase <= address &&
-                        address <= static_cast<BYTE*>( memoryInfo.AllocationBase ) + memoryInfo.RegionSize ) 
-                    {
-                        return true;
-                    }
-
-                    heapEntry.dwSize = sizeof( HEAPENTRY32 );
-                } while( Heap32Next( &heapEntry ) );
-            }
-            heapList.dwSize = sizeof( HEAPLIST32 );
-        } while( Heap32ListNext( snapshot, &heapList ) );
-    }
-
-    return false;
-}
+//
+//bool CToolhelp::IsHeap( const void* address ) const
+//{
+//    HEAPLIST32 heapList;
+//    MEMORY_BASIC_INFORMATION memoryInfo;
+//    heapList.dwSize = sizeof( HEAPLIST32 );
+//
+//    if( Heap32ListFirst( snapshot, &heapList ) ) {
+//        do {
+//            HEAPENTRY32 heapEntry;
+//            ZeroMemory( &heapEntry, sizeof( HEAPENTRY32 ) );
+//            heapEntry.dwSize = sizeof( HEAPENTRY32 );
+//
+//            if( Heap32First( &heapEntry, processId, heapList.th32HeapID ) ) {
+//                do {
+//                    VirtualQueryEx( 
+//                        process,
+//                        reinterpret_cast<void*>( heapEntry.dwAddress ),
+//                        &memoryInfo, 
+//                        sizeof( MEMORY_BASIC_INFORMATION ) );
+//
+//                    if( memoryInfo.AllocationBase <= address &&
+//                        address <= static_cast<BYTE*>( memoryInfo.AllocationBase ) + memoryInfo.RegionSize ) 
+//                    {
+//                        return true;
+//                    }
+//
+//                    heapEntry.dwSize = sizeof( HEAPENTRY32 );
+//                } while( Heap32Next( &heapEntry ) );
+//            }
+//            heapList.dwSize = sizeof( HEAPLIST32 );
+//        } while( Heap32ListNext( snapshot, &heapList ) );
+//    }
+//
+//    return false;
+//}
 
 CModuleInfo::CModuleInfo()
 {

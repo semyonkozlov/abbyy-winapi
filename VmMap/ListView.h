@@ -17,11 +17,19 @@ public:
     void Show( int cmdShow ) const;
 
     void SetColumns( const CItem& columnTitles );
+
     void AddItem( const CItem& item, int index = -1 );
     void SetItem( const CItem& item, int index );
 
+    CString GetItemText( int index, int subitemIndex );
+
+    void DeleteItem( int index );
     void DeleteAllItems();
+
+    int GetItemCount() const;
 
 private:
     HWND listView;
+
+    static const int subitemTextMaxSize = 1024;
 };

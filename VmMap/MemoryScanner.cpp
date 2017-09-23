@@ -80,6 +80,7 @@ int CMemoryScanner::GetMemoryMap( std::vector<CAllocationInfo>* memoryMap ) cons
 
         regionSize = regionInfo.RegionSize;
     }
+    memoryMap->push_back( allocationInfo );
 
     return memoryMap->size();
 }

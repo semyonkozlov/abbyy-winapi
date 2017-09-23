@@ -19,7 +19,7 @@ public:
     void DestroySnapshot();
 
     bool FindModule( _In_ const void* allocationAddress, _Out_ CModuleInfo* moduleInfo ) const;
-    bool IsHeap( const void* address ) const;
+    //bool IsHeap( const void* address ) const;
 
 private:
     HANDLE snapshot;

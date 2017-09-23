@@ -6,7 +6,6 @@
 #include "ListView.h"
 #include "MemoryScanner.h"
 #include "Converter.h"
-#include "Toolhelp.h"
 #include "Utils.h"
 
 class CVmMapWindow {
@@ -22,6 +21,7 @@ protected:
     void OnCreate();
     void OnSize();
     void OnCommand( WPARAM wParam );
+    void OnNotify( LPARAM lParam );
     void OnDestroy();
 
     void OnCmdRefresh();
@@ -36,6 +36,15 @@ private:
     CSelectionDialog selectProcDialog;
     CListView memMapList;
 
+    enum TMapListColumn {
+        MLC_Address,
+        MLC_Type,
+        MLC_Size,
+        MLC_Blocks,
+        MLC_Protection,
+        MLC_Details
+    };
+
     CMemoryScanner memoryScanner;
     CConverter itemConverter;
 
@@ -45,6 +54,7 @@ private:
 
     int processId;
     bool shouldExpandAll;
+
     std::vector<CAllocationInfo> memoryMap;
 
     void updateListWindow();

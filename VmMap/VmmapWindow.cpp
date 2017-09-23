@@ -1,4 +1,6 @@
 #include <cassert>
+#include <string>
+#include <algorithm>
 
 #include <Windows.h>
 #include <CommCtrl.h>
@@ -60,6 +62,14 @@ HWND CVmMapWindow::Create()
     assert( mainWindow != nullptr );
 
     listWindow = memMapList.Create( mainWindow );
+
+    memMapList.SetColumns( {
+        TEXT( "Address" ),
+        TEXT( "Type" ),
+        TEXT( "Size" ),
+        TEXT( "Blocks" ),
+        TEXT( "Protection" ),
+        TEXT( "Details" ) } );
     
     dialogWindow = selectProcDialog.Create( mainWindow );
 
@@ -152,6 +162,43 @@ void CVmMapWindow::OnCommand( WPARAM wParam )
     }
 }
 
+void CVmMapWindow::OnNotify( LPARAM lParam )
+{
+    auto notificationMessage = reinterpret_cast<LPNMHDR>( lParam );
+    if( notificationMessage->idFrom == IDC_LISTVIEW && notificationMessage->code == NM_DBLCLK ) {
+        int itemIndex = reinterpret_cast<LPNMLISTVIEW>( lParam )->iItem;
+        
+        CString blocksText = memMapList.GetItemText( itemIndex, MLC_Blocks );
+        if( blocksText.empty() ) {
+            return;
+        }
+        int numBlocks = std::stoi( blocksText );
+
+        bool isExpanded = (memMapList.GetItemText( itemIndex + 1, MLC_Address ).front() == TEXT( ' ' ));
+        
+        if( !isExpanded ) {
+            CString addressText = memMapList.GetItemText( itemIndex, MLC_Address );
+            const void* address = reinterpret_cast<const void*>(std::stoll( addressText, nullptr, 16 ));
+
+            auto allocationIter = std::find_if(
+                std::begin( memoryMap ),
+                std::end( memoryMap ),
+                [address]( const CAllocationInfo& a ) { return a.AllocationBaseAddress == address; } );
+
+            for( auto it = std::rbegin( allocationIter->RegionsInfo ); 
+                it != std::rend( allocationIter->RegionsInfo );
+                ++it ) 
+            {
+                memMapList.AddItem( itemConverter.RegionInfoToItem( *it ), itemIndex + 1 );
+            }
+        } else {
+            for( int i = 0; i < numBlocks; ++i ) {
+                memMapList.DeleteItem( itemIndex + 1 );
+            }
+        }
+    }
+}
+
 LRESULT CVmMapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
 {
     CVmMapWindow* vmmap = nullptr;
@@ -177,6 +224,11 @@ LRESULT CVmMapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPAR
         case WM_COMMAND:
         {
             vmmap->OnCommand( wParam );
+            return EXIT_SUCCESS;
+        }
+        case WM_NOTIFY:
+        {
+            vmmap->OnNotify( lParam );
             return EXIT_SUCCESS;
         }
         case WM_DESTROY:

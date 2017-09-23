@@ -11,7 +11,7 @@ class CConverter {
 public:
     CConverter() = default;
 
-    CItem RegionInfoToItem( const CRegionInfo& blockInfo, CString details = {} );
+    CItem RegionInfoToItem( const CRegionInfo& regionInfo, CString details = {} );
     CItem AllocationInfoToItem( const CAllocationInfo& allocationInfo );
 
 private:
