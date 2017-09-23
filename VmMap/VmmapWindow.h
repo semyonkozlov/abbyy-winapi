@@ -25,6 +25,9 @@ protected:
     void OnDestroy();
 
     void OnCmdRefresh();
+    void OnCmdSelectProcess();
+    void OnCmdExpandAll();
+    void OnCmdCollapseAll();
 
 private:
     static const CString className;
@@ -34,7 +37,7 @@ private:
     CString windowTitle;
 
     CSelectionDialog selectProcDialog;
-    CListView memMapList;
+    CListView memoryMapList;
 
     enum TMapListColumn {
         MLC_Address,
@@ -58,4 +61,7 @@ private:
     std::vector<CAllocationInfo> memoryMap;
 
     void updateListWindow();
+
+    void expandItem( int itemIndex );
+    void collapseItem( int itemIndex, int numItems );
 };

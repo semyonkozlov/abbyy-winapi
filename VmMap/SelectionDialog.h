@@ -13,12 +13,17 @@ public:
 
 protected:
     void OnInit( HWND handle );
+    void OnClose();
+    INT_PTR OnCommand( WPARAM wParam );
+
+    void OnCmdPushbuttonOk();
+    void OnCmdPushbuttonCancel();
 
 private:
     static INT_PTR CALLBACK dialogProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam );
 
     CListView procsList;
 
-    HWND dialog;
-    HWND list;
+    HWND dialogWindow;
+    HWND listWindow;
 };

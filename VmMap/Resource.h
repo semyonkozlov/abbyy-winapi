@@ -26,6 +26,9 @@
 // Select-process dialog
 #define IDD_DIALOG 2
 
+#define ID_PUSHBUTTON_OK 21
+#define ID_PUSHBUTTON_CANCEL 22
+
 // Icon
 #define IDI_ICON 3
 

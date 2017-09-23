@@ -7,33 +7,70 @@
 
 CSelectionDialog::CSelectionDialog() :
     procsList(),
-    dialog( nullptr ),
-    list( nullptr )
+    dialogWindow( nullptr ),
+    listWindow( nullptr )
 {
 }
 
 HWND CSelectionDialog::Create( HWND parent )
 {
-    dialog = CreateDialogParam(
+    dialogWindow = CreateDialogParam(
         GetModuleHandle( nullptr ),
         MAKEINTRESOURCE( IDD_DIALOG ),
         parent,
         dialogProc,
         reinterpret_cast<LPARAM>( this ) );
-    //assert( dialog != nullptr ); TODO
+    assert( dialogWindow != nullptr ); 
 
-    //list = procsList.Create( dialog );
+    listWindow = procsList.Create( dialogWindow );
    
-    return dialog;
+    return dialogWindow;
 }
 
 void CSelectionDialog::Show( int cmdShow ) const
 {
-    ShowWindow( dialog, cmdShow );
+    ShowWindow( dialogWindow, cmdShow );
 }
 
 void CSelectionDialog::OnInit( HWND handle )
 {
+}
+
+void CSelectionDialog::OnClose()
+{
+    EndDialog( dialogWindow, EXIT_SUCCESS );
+}
+
+INT_PTR CSelectionDialog::OnCommand( WPARAM wParam )
+{
+    switch( LOWORD( wParam ) ) {
+        case ID_PUSHBUTTON_OK:
+        {
+            OnCmdPushbuttonOk();
+            return TRUE;
+        }
+        case ID_PUSHBUTTON_CANCEL:
+        {
+            OnCmdPushbuttonCancel();
+            return TRUE;
+        }
+        default:
+        {
+            MessageBox( dialogWindow, TEXT( "What?" ), nullptr, MB_OK );
+        }
+    }
+
+    return FALSE;
+}
+
+void CSelectionDialog::OnCmdPushbuttonOk()
+{
+    OnClose();
+}
+
+void CSelectionDialog::OnCmdPushbuttonCancel()
+{
+    OnClose();
 }
 
 INT_PTR CSelectionDialog::dialogProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
@@ -50,9 +87,20 @@ INT_PTR CSelectionDialog::dialogProc( HWND handle, UINT message, WPARAM wParam, 
 
     dialog = reinterpret_cast<CSelectionDialog*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
     switch( message ) { // TODO
+        case WM_COMMAND:
+        {
+            return dialog->OnCommand( wParam );
+        }
+        case WM_CLOSE:
+        {
+            dialog->OnClose();
+            return TRUE;
+        }
         default:
         {
-            return FALSE;
+            //MessageBox( dialog->dialogWindow, TEXT( "What?" ), nullptr, MB_OK );
         }
     }
+
+    return FALSE;
 }

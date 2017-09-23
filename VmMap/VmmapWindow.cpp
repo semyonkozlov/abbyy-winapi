@@ -16,7 +16,7 @@ const CString CVmMapWindow::className = TEXT( "VMMAP" );
 CVmMapWindow::CVmMapWindow() :
     windowTitle(),
     selectProcDialog(),
-    memMapList(),
+    memoryMapList(),
     memoryScanner(),
     mainWindow( nullptr ),
     listWindow( nullptr ),
@@ -61,9 +61,9 @@ HWND CVmMapWindow::Create()
         this );
     assert( mainWindow != nullptr );
 
-    listWindow = memMapList.Create( mainWindow );
+    listWindow = memoryMapList.Create( mainWindow );
 
-    memMapList.SetColumns( {
+    memoryMapList.SetColumns( {
         TEXT( "Address" ),
         TEXT( "Type" ),
         TEXT( "Size" ),
@@ -79,7 +79,7 @@ HWND CVmMapWindow::Create()
 void CVmMapWindow::Show( int cmdShow ) const
 {
     ShowWindow( mainWindow, cmdShow );
-    memMapList.Show( cmdShow );
+    memoryMapList.Show( cmdShow );
 }
 
 void CVmMapWindow::OnCreate()
@@ -90,12 +90,38 @@ void CVmMapWindow::OnCreate()
 void CVmMapWindow::OnDestroy()
 {
     // TODO close handles
+    memoryScanner.DetachFromProcess();
     PostQuitMessage( EXIT_SUCCESS );
 }
 
 void CVmMapWindow::OnCmdRefresh()
 {
     memoryScanner.GetMemoryMap( &memoryMap );
+    updateListWindow();
+}
+
+void CVmMapWindow::OnCmdSelectProcess()
+{
+    selectProcDialog.Show( SW_SHOW );
+    if( processId != -1 ) {
+        memoryScanner.DetachFromProcess();
+    }
+
+    processId = GetCurrentProcessId(); // TODO
+    memoryScanner.AttachToProcess( processId );
+
+    OnCmdRefresh();
+}
+
+void CVmMapWindow::OnCmdExpandAll()
+{
+    shouldExpandAll = true;
+    updateListWindow();
+}
+
+void CVmMapWindow::OnCmdCollapseAll()
+{
+    shouldExpandAll = false;
     updateListWindow();
 }
 
@@ -118,14 +144,7 @@ void CVmMapWindow::OnCommand( WPARAM wParam )
     switch( LOWORD( wParam ) ) {
         case ID_SELECT_PROCESS:
         {
-            if( processId != -1 ) {
-                memoryScanner.DetachFromProcess();
-            }
-
-            processId = GetCurrentProcessId(); // TODO
-            memoryScanner.AttachToProcess( processId );
-
-            OnCmdRefresh();
+            OnCmdSelectProcess();
             break;
         }
         case ID_QUICK_HELP:
@@ -135,14 +154,12 @@ void CVmMapWindow::OnCommand( WPARAM wParam )
         }
         case ID_EXPAND_ALL:
         {
-            shouldExpandAll = true;
-            updateListWindow();
+            OnCmdExpandAll();
             break;
         }
         case ID_COLLAPSE_ALL:
         {
-            shouldExpandAll = false;
-            updateListWindow();
+            OnCmdCollapseAll();
             break;
         }
         case ID_REFRESH:
@@ -168,33 +185,19 @@ void CVmMapWindow::OnNotify( LPARAM lParam )
     if( notificationMessage->idFrom == IDC_LISTVIEW && notificationMessage->code == NM_DBLCLK ) {
         int itemIndex = reinterpret_cast<LPNMLISTVIEW>( lParam )->iItem;
         
-        CString blocksText = memMapList.GetItemText( itemIndex, MLC_Blocks );
+        CString blocksText = memoryMapList.GetItemText( itemIndex, MLC_Blocks );
         if( blocksText.empty() ) {
             return;
         }
         int numBlocks = std::stoi( blocksText );
 
-        bool isExpanded = (memMapList.GetItemText( itemIndex + 1, MLC_Address ).front() == TEXT( ' ' ));
+        // region info item has leading whitespace
+        bool isExpanded = (memoryMapList.GetItemText( itemIndex + 1, MLC_Address ).front() == TEXT( ' ' ));
         
-        if( !isExpanded ) {
-            CString addressText = memMapList.GetItemText( itemIndex, MLC_Address );
-            const void* address = reinterpret_cast<const void*>(std::stoll( addressText, nullptr, 16 ));
-
-            auto allocationIter = std::find_if(
-                std::begin( memoryMap ),
-                std::end( memoryMap ),
-                [address]( const CAllocationInfo& a ) { return a.AllocationBaseAddress == address; } );
-
-            for( auto it = std::rbegin( allocationIter->RegionsInfo ); 
-                it != std::rend( allocationIter->RegionsInfo );
-                ++it ) 
-            {
-                memMapList.AddItem( itemConverter.RegionInfoToItem( *it ), itemIndex + 1 );
-            }
+        if( isExpanded ) {
+            collapseItem( itemIndex, numBlocks );
         } else {
-            for( int i = 0; i < numBlocks; ++i ) {
-                memMapList.DeleteItem( itemIndex + 1 );
-            }
+            expandItem( itemIndex );
         }
     }
 }
@@ -245,17 +248,42 @@ void CVmMapWindow::updateListWindow()
 {
     SetWindowRedraw( listWindow, FALSE );
 
-    memMapList.DeleteAllItems();
+    memoryMapList.DeleteAllItems();
     for( auto&& allocationInfo : memoryMap ) {
-        memMapList.AddItem( itemConverter.AllocationInfoToItem( allocationInfo ) );
+        memoryMapList.AddItem( itemConverter.AllocationInfoToItem( allocationInfo ) );
 
         for( auto&& regionInfo : allocationInfo.RegionsInfo ) {
             if( shouldExpandAll && regionInfo.Type != MEM_FREE ) {
-                memMapList.AddItem( itemConverter.RegionInfoToItem( regionInfo ) );
+                memoryMapList.AddItem( itemConverter.RegionInfoToItem( regionInfo ) );
             }
         }
     }
 
     SetWindowRedraw( listWindow, TRUE );
     UpdateWindow( listWindow );
+}
+
+void CVmMapWindow::expandItem( int itemIndex )
+{
+    CString addressText = memoryMapList.GetItemText( itemIndex, MLC_Address );
+    const void* address = reinterpret_cast<const void*>(std::stoll( addressText, nullptr, 16 ));
+
+    auto allocationIter = std::find_if(
+        std::begin( memoryMap ),
+        std::end( memoryMap ),
+        [address]( const CAllocationInfo& a ) { return a.AllocationBaseAddress == address; } );
+
+    for( auto it = std::rbegin( allocationIter->RegionsInfo );
+        it != std::rend( allocationIter->RegionsInfo );
+        ++it ) 
+    {
+        memoryMapList.AddItem( itemConverter.RegionInfoToItem( *it ), itemIndex + 1 );
+    }
+}
+
+void CVmMapWindow::collapseItem( int itemIndex, int numItems )
+{
+    for( int i = 0; i < numItems; ++i ) {
+        memoryMapList.DeleteItem( itemIndex + 1 );
+    }
 }
