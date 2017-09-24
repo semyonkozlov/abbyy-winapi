@@ -37,8 +37,8 @@ private:
     CString windowTitle;
 
     CSelectionDialog selectProcDialog;
-    CListView memoryMapList;
 
+    CListView memoryMapList;
     enum TMapListColumn {
         MLC_Address,
         MLC_Type,
@@ -49,11 +49,10 @@ private:
     };
 
     CMemoryScanner memoryScanner;
-    CConverter itemConverter;
+    CConverter converter;
 
     HWND mainWindow;
     HWND listWindow;
-    HWND dialogWindow;
 
     int processId;
     bool shouldExpandAll;
@@ -61,6 +60,7 @@ private:
     std::vector<CAllocationInfo> memoryMap;
 
     void updateListWindow();
+    void updateWindowCaption();
 
     void expandItem( int itemIndex );
     void collapseItem( int itemIndex, int numItems );

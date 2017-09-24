@@ -43,6 +43,19 @@ CItem CConverter::AllocationInfoToItem( const CAllocationInfo& allocationInfo )
     return { address, type, size, blocks, protection, details };
 }
 
+CItem CConverter::ProcessInfoToItem( const CProcessInfo& processInfo )
+{
+    CString name = processInfo.ProcessName;
+
+    CString pid = IntToString( processInfo.Pid );
+
+    CString workingSet = memSizeToString( processInfo.WorkingSetSize );
+
+    CString architecture = processInfo.Is64bit ? TEXT( "64-bit" ) : TEXT( "32-bit" );
+
+    return { name, pid, workingSet, architecture };
+}
+
 CString CConverter::memSizeToString( long long memSize ) 
 {
     auto defaultLocale = stream.getloc();

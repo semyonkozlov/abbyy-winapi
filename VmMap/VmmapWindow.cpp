@@ -20,7 +20,6 @@ CVmMapWindow::CVmMapWindow() :
     memoryScanner(),
     mainWindow( nullptr ),
     listWindow( nullptr ),
-    dialogWindow( nullptr ),
     processId( -1 ),
     shouldExpandAll( false ),
     memoryMap()
@@ -70,8 +69,6 @@ HWND CVmMapWindow::Create()
         TEXT( "Blocks" ),
         TEXT( "Protection" ),
         TEXT( "Details" ) } );
-    
-    dialogWindow = selectProcDialog.Create( mainWindow );
 
     return mainWindow;
 }
@@ -102,12 +99,12 @@ void CVmMapWindow::OnCmdRefresh()
 
 void CVmMapWindow::OnCmdSelectProcess()
 {
-    selectProcDialog.Show( SW_SHOW );
+    processId = selectProcDialog.CreateDialogBox( mainWindow );
     if( processId != -1 ) {
         memoryScanner.DetachFromProcess();
     }
+    updateWindowCaption();
 
-    processId = GetCurrentProcessId(); // TODO
     memoryScanner.AttachToProcess( processId );
 
     OnCmdRefresh();
@@ -143,39 +140,31 @@ void CVmMapWindow::OnCommand( WPARAM wParam )
 {
     switch( LOWORD( wParam ) ) {
         case ID_SELECT_PROCESS:
-        {
             OnCmdSelectProcess();
             break;
-        }
+
         case ID_QUICK_HELP:
-        {
             MessageBox( mainWindow, TEXT( "Help me, please..." ), TEXT( "HELP!" ), MB_OK );
             break;
-        }
+
         case ID_EXPAND_ALL:
-        {
             OnCmdExpandAll();
             break;
-        }
+
         case ID_COLLAPSE_ALL:
-        {
             OnCmdCollapseAll();
             break;
-        }
+
         case ID_REFRESH:
-        {
             OnCmdRefresh();
             break;
-        }
+
         case ID_EXIT:
-        {
             OnDestroy();
             break;
-        }
+
         default:
-        {
             MessageBox( mainWindow, TEXT( "What?" ), TEXT( "Error" ), MB_OK );
-        }
     }
 }
 
@@ -215,33 +204,30 @@ LRESULT CVmMapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPAR
     vmmap = reinterpret_cast<CVmMapWindow*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
     switch( message ) { // TODO
         case WM_CREATE:
-        {
             vmmap->OnCreate();
-            return EXIT_SUCCESS;
-        }
+            break;
+
         case WM_SIZE:
-        {
             vmmap->OnSize();
-            return EXIT_SUCCESS;
-        }
+            break;
+
         case WM_COMMAND:
-        {
             vmmap->OnCommand( wParam );
-            return EXIT_SUCCESS;
-        }
+            break;
+
         case WM_NOTIFY:
-        {
             vmmap->OnNotify( lParam );
-            return EXIT_SUCCESS;
-        }
+            break;
+
         case WM_DESTROY:
-        {
             vmmap->OnDestroy();
-            return EXIT_SUCCESS;
-        }
+            break;
+
         default:
             return DefWindowProc( handle, message, wParam, lParam );
     }
+    
+    return EXIT_SUCCESS;
 }
 
 void CVmMapWindow::updateListWindow()
@@ -250,17 +236,22 @@ void CVmMapWindow::updateListWindow()
 
     memoryMapList.DeleteAllItems();
     for( auto&& allocationInfo : memoryMap ) {
-        memoryMapList.AddItem( itemConverter.AllocationInfoToItem( allocationInfo ) );
+        memoryMapList.AddItem( converter.AllocationInfoToItem( allocationInfo ) );
 
         for( auto&& regionInfo : allocationInfo.RegionsInfo ) {
             if( shouldExpandAll && regionInfo.Type != MEM_FREE ) {
-                memoryMapList.AddItem( itemConverter.RegionInfoToItem( regionInfo ) );
+                memoryMapList.AddItem( converter.RegionInfoToItem( regionInfo ) );
             }
         }
     }
 
     SetWindowRedraw( listWindow, TRUE );
     UpdateWindow( listWindow );
+}
+
+void CVmMapWindow::updateWindowCaption()
+{
+    SetWindowText( mainWindow, IntToString( processId ).c_str() );
 }
 
 void CVmMapWindow::expandItem( int itemIndex )
@@ -277,7 +268,7 @@ void CVmMapWindow::expandItem( int itemIndex )
         it != std::rend( allocationIter->RegionsInfo );
         ++it ) 
     {
-        memoryMapList.AddItem( itemConverter.RegionInfoToItem( *it ), itemIndex + 1 );
+        memoryMapList.AddItem( converter.RegionInfoToItem( *it ), itemIndex + 1 );
     }
 }
 

@@ -1,27 +1,36 @@
 #include <cassert>
 
 #include <Windows.h>
+#include <windowsx.h>
+#include <CommCtrl.h>
 
 #include "Resource.h"
 #include "SelectionDialog.h"
 
 CSelectionDialog::CSelectionDialog() :
+    toolhelp(),
+    converter(),
     procsList(),
+    processId( -1 ),
     dialogWindow( nullptr ),
     listWindow( nullptr )
 {
 }
 
-HWND CSelectionDialog::Create( HWND parent )
+INT_PTR CSelectionDialog::CreateDialogBox( HWND parent )
 {
-    dialogWindow = CreateDialogParam(
+    return DialogBoxParam(
         GetModuleHandle( nullptr ),
         MAKEINTRESOURCE( IDD_DIALOG ),
         parent,
         dialogProc,
         reinterpret_cast<LPARAM>( this ) );
-    assert( dialogWindow != nullptr );
- 
+}
+
+void CSelectionDialog::OnInit( HWND handle )
+{
+    dialogWindow = handle;
+
     listWindow = procsList.Create( dialogWindow );
     RECT rect;
     GetClientRect( dialogWindow, &rect );
@@ -38,41 +47,51 @@ HWND CSelectionDialog::Create( HWND parent )
     procsList.SetColumns( {
         TEXT( "Name" ),
         TEXT( "PID" ),
-        TEXT( "User" ),
-        TEXT( "Working Set" )
+        TEXT( "Working Set" ),
+        TEXT( "Architecture" )
     } );
 
-    return dialogWindow;
+    toolhelp.CreateSnapshot( 0 );
+
+    //ShowWindow( listWindow, SW_SHOW );
+    OnCmdPushbuttonRefresh();
 }
 
-void CSelectionDialog::Show( int cmdShow ) const
+void CSelectionDialog::OnNotify( LPARAM lParam )
 {
-    ShowWindow( dialogWindow, cmdShow );
-    ShowWindow( listWindow, cmdShow );
+    auto notificationMessage = reinterpret_cast<LPNMHDR>(lParam);
+    if( notificationMessage->idFrom == IDC_LISTVIEW && notificationMessage->code == NM_DBLCLK ) {
+        int itemIndex = reinterpret_cast<LPNMLISTVIEW>(lParam)->iItem;
+
+        CString pidText = procsList.GetItemText( itemIndex, PLC_Pid );
+        EndDialog( dialogWindow, std::stoi( pidText ) );
+    }
 }
 
 void CSelectionDialog::OnClose()
 {
-    Show( SW_HIDE );
+    toolhelp.DestroySnapshot();
+
+    EndDialog( dialogWindow, -1 );
 }
 
 INT_PTR CSelectionDialog::OnCommand( WPARAM wParam )
 {
     switch( LOWORD( wParam ) ) {
         case ID_PUSHBUTTON_OK:
-        {
             OnCmdPushbuttonOk();
             return TRUE;
-        }
+
         case ID_PUSHBUTTON_CANCEL:
-        {
             OnCmdPushbuttonCancel();
             return TRUE;
-        }
+
+        case ID_PUSHBUTTON_REFRESH:
+            OnCmdPushbuttonRefresh();
+            return TRUE;
+
         default:
-        {
             MessageBox( dialogWindow, TEXT( "What?" ), nullptr, MB_OK );
-        }
     }
 
     return FALSE;
@@ -88,6 +107,23 @@ void CSelectionDialog::OnCmdPushbuttonCancel()
     OnClose();
 }
 
+void CSelectionDialog::OnCmdPushbuttonRefresh()
+{
+    SetWindowRedraw( listWindow, FALSE );
+
+    procsList.DeleteAllItems();
+
+    std::vector<CProcessInfo> processInfoList;
+    toolhelp.GetProcessList( &processInfoList );
+
+    for( auto&& processInfo : processInfoList ) {
+        procsList.AddItem( converter.ProcessInfoToItem( processInfo ) );
+    }
+
+    SetWindowRedraw( listWindow, TRUE );
+    procsList.Show( SW_SHOW );
+}
+
 INT_PTR CSelectionDialog::dialogProc( HWND handle, UINT message, WPARAM wParam, LPARAM lParam )
 {
     CSelectionDialog* dialog = nullptr;
@@ -95,23 +131,25 @@ INT_PTR CSelectionDialog::dialogProc( HWND handle, UINT message, WPARAM wParam, 
         dialog = reinterpret_cast<CSelectionDialog*>( lParam );
         SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( dialog ) );
 
+        dialog->OnInit( handle );
+
         return TRUE;
     }
 
     dialog = reinterpret_cast<CSelectionDialog*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
     switch( message ) { // TODO
         case WM_COMMAND:
-        {
             return dialog->OnCommand( wParam );
-        }
+
+        case WM_NOTIFY:
+            dialog->OnNotify( lParam );
+            return TRUE;
+
         case WM_CLOSE:
-        {
             dialog->OnClose();
             return TRUE;
-        }
-        case WM_SIZE:
-        {
-        }
+
+
         default:
         {
             //MessageBox( dialog->dialogWindow, TEXT( "What?" ), nullptr, MB_OK );

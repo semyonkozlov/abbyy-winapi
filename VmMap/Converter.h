@@ -13,6 +13,7 @@ public:
 
     CItem RegionInfoToItem( const CRegionInfo& regionInfo, CString details = {} );
     CItem AllocationInfoToItem( const CAllocationInfo& allocationInfo );
+    CItem ProcessInfoToItem( const CProcessInfo& processInfo );
 
 private:
     CStringStream stream;
