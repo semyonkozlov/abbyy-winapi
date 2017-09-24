@@ -12,7 +12,6 @@ public:
     void Show( int cmdShow ) const;
 
 protected:
-    void OnInit( HWND handle );
     void OnClose();
     INT_PTR OnCommand( WPARAM wParam );
 

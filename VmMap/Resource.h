@@ -28,6 +28,7 @@
 
 #define ID_PUSHBUTTON_OK 21
 #define ID_PUSHBUTTON_CANCEL 22
+#define ID_PUSHBUTTON_REFRESH 23
 
 // Icon
 #define IDI_ICON 3

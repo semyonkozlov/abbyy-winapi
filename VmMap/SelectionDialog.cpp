@@ -20,25 +20,40 @@ HWND CSelectionDialog::Create( HWND parent )
         parent,
         dialogProc,
         reinterpret_cast<LPARAM>( this ) );
-    assert( dialogWindow != nullptr ); 
-
+    assert( dialogWindow != nullptr );
+ 
     listWindow = procsList.Create( dialogWindow );
-   
+    RECT rect;
+    GetClientRect( dialogWindow, &rect );
+
+    SetWindowPos(
+        listWindow,
+        HWND_TOP,
+        rect.left,
+        rect.top,
+        rect.right - rect.left,
+        rect.bottom - rect.top - 55,
+        0 );
+
+    procsList.SetColumns( {
+        TEXT( "Name" ),
+        TEXT( "PID" ),
+        TEXT( "User" ),
+        TEXT( "Working Set" )
+    } );
+
     return dialogWindow;
 }
 
 void CSelectionDialog::Show( int cmdShow ) const
 {
     ShowWindow( dialogWindow, cmdShow );
-}
-
-void CSelectionDialog::OnInit( HWND handle )
-{
+    ShowWindow( listWindow, cmdShow );
 }
 
 void CSelectionDialog::OnClose()
 {
-    EndDialog( dialogWindow, EXIT_SUCCESS );
+    Show( SW_HIDE );
 }
 
 INT_PTR CSelectionDialog::OnCommand( WPARAM wParam )
@@ -80,8 +95,6 @@ INT_PTR CSelectionDialog::dialogProc( HWND handle, UINT message, WPARAM wParam, 
         dialog = reinterpret_cast<CSelectionDialog*>( lParam );
         SetWindowLongPtr( handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>( dialog ) );
 
-        dialog->OnInit( handle );
-
         return TRUE;
     }
 
@@ -95,6 +108,9 @@ INT_PTR CSelectionDialog::dialogProc( HWND handle, UINT message, WPARAM wParam, 
         {
             dialog->OnClose();
             return TRUE;
+        }
+        case WM_SIZE:
+        {
         }
         default:
         {
