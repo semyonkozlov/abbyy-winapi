@@ -19,7 +19,6 @@ protected:
     void OnClose();
 
     void OnCmdPushbuttonOk();
-    void OnCmdPushbuttonCancel();
     void OnCmdPushbuttonRefresh();
 
 private:
@@ -35,6 +34,7 @@ private:
         PLC_WorkingSet,
         PLT_Architecture
     };
+    int selectedItemIndex;
 
     int processId;
 

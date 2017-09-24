@@ -66,7 +66,7 @@ bool CToolhelp::GetProcessList( std::vector<CProcessInfo>* processInfoList )
             IsWow64Process( currentProc, &is32bit );
            
             processInfo.ProcessName = processEntry.szExeFile;
-            processInfo.Pid = GetProcessId( currentProc );//processEntry.th32ParentProcessID;
+            processInfo.Pid = GetProcessId( currentProc );
             processInfo.WorkingSetSize = processMemoryCounters.WorkingSetSize;
             processInfo.Is64bit = !is32bit;
 
@@ -82,42 +82,6 @@ bool CToolhelp::GetProcessList( std::vector<CProcessInfo>* processInfoList )
 
     return true;
 }
-
-//bool CToolhelp::IsHeap( const void* address ) const
-//{
-//    HEAPLIST32 heapList;
-//    MEMORY_BASIC_INFORMATION memoryInfo;
-//    heapList.dwSize = sizeof( HEAPLIST32 );
-//
-//    if( Heap32ListFirst( snapshot, &heapList ) ) {
-//        do {
-//            HEAPENTRY32 heapEntry;
-//            ZeroMemory( &heapEntry, sizeof( HEAPENTRY32 ) );
-//            heapEntry.dwSize = sizeof( HEAPENTRY32 );
-//
-//            if( Heap32First( &heapEntry, processId, heapList.th32HeapID ) ) {
-//                do {
-//                    VirtualQueryEx( 
-//                        process,
-//                        reinterpret_cast<void*>( heapEntry.dwAddress ),
-//                        &memoryInfo, 
-//                        sizeof( MEMORY_BASIC_INFORMATION ) );
-//
-//                    if( memoryInfo.AllocationBase <= address &&
-//                        address <= static_cast<BYTE*>( memoryInfo.AllocationBase ) + memoryInfo.RegionSize ) 
-//                    {
-//                        return true;
-//                    }
-//
-//                    heapEntry.dwSize = sizeof( HEAPENTRY32 );
-//                } while( Heap32Next( &heapEntry ) );
-//            }
-//            heapList.dwSize = sizeof( HEAPLIST32 );
-//        } while( Heap32ListNext( snapshot, &heapList ) );
-//    }
-//
-//    return false;
-//}
 
 CModuleInfo::CModuleInfo()
 {

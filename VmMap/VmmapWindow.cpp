@@ -14,7 +14,6 @@
 const CString CVmMapWindow::className = TEXT( "VMMAP" );
 
 CVmMapWindow::CVmMapWindow() :
-    windowTitle(),
     selectProcDialog(),
     memoryMapList(),
     memoryScanner(),
@@ -48,7 +47,7 @@ HWND CVmMapWindow::Create()
 {
     mainWindow = CreateWindow(
         className.c_str(),
-        windowTitle.c_str(),
+        TEXT( "Virtual Memory Map" ),
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
@@ -79,11 +78,6 @@ void CVmMapWindow::Show( int cmdShow ) const
     memoryMapList.Show( cmdShow );
 }
 
-void CVmMapWindow::OnCreate()
-{
-    // TODO
-}
-
 void CVmMapWindow::OnDestroy()
 {
     // TODO close handles
@@ -100,9 +94,10 @@ void CVmMapWindow::OnCmdRefresh()
 void CVmMapWindow::OnCmdSelectProcess()
 {
     processId = selectProcDialog.CreateDialogBox( mainWindow );
-    if( processId != -1 ) {
-        memoryScanner.DetachFromProcess();
+    if( processId == -1 ) {
+        return;
     }
+    memoryScanner.DetachFromProcess();
     updateWindowCaption();
 
     memoryScanner.AttachToProcess( processId );
@@ -202,11 +197,7 @@ LRESULT CVmMapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPAR
     }
 
     vmmap = reinterpret_cast<CVmMapWindow*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
-    switch( message ) { // TODO
-        case WM_CREATE:
-            vmmap->OnCreate();
-            break;
-
+    switch( message ) { 
         case WM_SIZE:
             vmmap->OnSize();
             break;
@@ -251,13 +242,22 @@ void CVmMapWindow::updateListWindow()
 
 void CVmMapWindow::updateWindowCaption()
 {
-    SetWindowText( mainWindow, IntToString( processId ).c_str() );
+    HANDLE process = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId );
+    TCHAR processName[MAX_PATH + 1];
+    GetModuleBaseName( process, nullptr, processName, MAX_PATH );
+    CloseHandle( process );
+
+    CString caption = TEXT( "Virtual Memory Map : " );
+    (caption += processName) += TEXT( ", PID = " );
+    caption += IntToString( processId ).c_str();
+
+    SetWindowText( mainWindow, caption.c_str() );
 }
 
 void CVmMapWindow::expandItem( int itemIndex )
 {
     CString addressText = memoryMapList.GetItemText( itemIndex, MLC_Address );
-    const void* address = reinterpret_cast<const void*>(std::stoll( addressText, nullptr, 16 ));
+    const void* address = reinterpret_cast<const void*>( std::stoll( addressText, nullptr, 16 ) );
 
     auto allocationIter = std::find_if(
         std::begin( memoryMap ),

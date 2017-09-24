@@ -53,25 +53,25 @@ void CSelectionDialog::OnInit( HWND handle )
 
     toolhelp.CreateSnapshot( 0 );
 
-    //ShowWindow( listWindow, SW_SHOW );
     OnCmdPushbuttonRefresh();
 }
 
 void CSelectionDialog::OnNotify( LPARAM lParam )
 {
-    auto notificationMessage = reinterpret_cast<LPNMHDR>(lParam);
+    auto notificationMessage = reinterpret_cast<LPNMHDR>( lParam );
     if( notificationMessage->idFrom == IDC_LISTVIEW && notificationMessage->code == NM_DBLCLK ) {
-        int itemIndex = reinterpret_cast<LPNMLISTVIEW>(lParam)->iItem;
+        int itemIndex = reinterpret_cast<LPNMLISTVIEW>( lParam )->iItem;
 
         CString pidText = procsList.GetItemText( itemIndex, PLC_Pid );
         EndDialog( dialogWindow, std::stoi( pidText ) );
+    } else if( notificationMessage->idFrom == IDC_LISTVIEW && notificationMessage->code == NM_CLICK ) {
+        selectedItemIndex = reinterpret_cast<LPNMLISTVIEW>(lParam)->iItem;
     }
 }
 
 void CSelectionDialog::OnClose()
 {
     toolhelp.DestroySnapshot();
-
     EndDialog( dialogWindow, -1 );
 }
 
@@ -83,7 +83,7 @@ INT_PTR CSelectionDialog::OnCommand( WPARAM wParam )
             return TRUE;
 
         case ID_PUSHBUTTON_CANCEL:
-            OnCmdPushbuttonCancel();
+            OnClose();
             return TRUE;
 
         case ID_PUSHBUTTON_REFRESH:
@@ -99,12 +99,8 @@ INT_PTR CSelectionDialog::OnCommand( WPARAM wParam )
 
 void CSelectionDialog::OnCmdPushbuttonOk()
 {
-    OnClose();
-}
-
-void CSelectionDialog::OnCmdPushbuttonCancel()
-{
-    OnClose();
+    CString pidText = procsList.GetItemText( selectedItemIndex, PLC_Pid );
+    EndDialog( dialogWindow, std::stoi( pidText ) );
 }
 
 void CSelectionDialog::OnCmdPushbuttonRefresh()
@@ -137,7 +133,7 @@ INT_PTR CSelectionDialog::dialogProc( HWND handle, UINT message, WPARAM wParam, 
     }
 
     dialog = reinterpret_cast<CSelectionDialog*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
-    switch( message ) { // TODO
+    switch( message ) { 
         case WM_COMMAND:
             return dialog->OnCommand( wParam );
 
@@ -148,7 +144,6 @@ INT_PTR CSelectionDialog::dialogProc( HWND handle, UINT message, WPARAM wParam, 
         case WM_CLOSE:
             dialog->OnClose();
             return TRUE;
-
 
         default:
         {
