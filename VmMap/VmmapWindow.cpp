@@ -117,6 +117,33 @@ void CVmMapWindow::OnCmdCollapseAll()
     updateListWindow();
 }
 
+void CVmMapWindow::OnCmdCopyAddress() const
+{
+    int selectedItemIndex = memoryMapList.GetSelectedItemIndex();
+
+    CString text = memoryMapList.GetItemText( selectedItemIndex, MLC_Address );
+
+    CStringStream stream( text );
+    stream >> text; // trim address
+
+    saveToClipboard( text );
+}
+
+void CVmMapWindow::OnCmdCopyAll() const
+{
+    saveToClipboard( getMemoryMapText() );
+}
+
+void CVmMapWindow::OnCmdQuickHelp() const
+{
+    MessageBox( mainWindow, TEXT( "msdn.com" ), TEXT( "VmMap Quick Help" ), MB_OK );
+}
+
+void CVmMapWindow::OnCmdAbout() const
+{
+    MessageBox( mainWindow, TEXT( "VmMap v0.01" ), TEXT( "About VmMap" ), MB_OK );
+}
+
 void CVmMapWindow::OnSize()
 {
     RECT rect;
@@ -138,8 +165,8 @@ void CVmMapWindow::OnCommand( WPARAM wParam )
             OnCmdSelectProcess();
             break;
 
-        case ID_QUICK_HELP:
-            MessageBox( mainWindow, TEXT( "Help me, please..." ), TEXT( "HELP!" ), MB_OK );
+        case ID_EXIT:
+            OnDestroy();
             break;
 
         case ID_EXPAND_ALL:
@@ -154,12 +181,22 @@ void CVmMapWindow::OnCommand( WPARAM wParam )
             OnCmdRefresh();
             break;
 
-        case ID_EXIT:
-            OnDestroy();
+        case ID_COPY_ADDRESS:
+            OnCmdCopyAddress();
             break;
 
-        default:
-            MessageBox( mainWindow, TEXT( "What?" ), TEXT( "Error" ), MB_OK );
+        case ID_COPY_ALL:
+            OnCmdCopyAll();
+            break;
+
+        case ID_QUICK_HELP:
+            OnCmdQuickHelp();
+            break;
+
+        case ID_ABOUT:
+            OnCmdAbout();
+            break;
+
     }
 }
 
@@ -277,4 +314,33 @@ void CVmMapWindow::collapseItem( int itemIndex, int numItems )
     for( int i = 0; i < numItems; ++i ) {
         memoryMapList.DeleteItem( itemIndex + 1 );
     }
+}
+
+CString CVmMapWindow::getMemoryMapText() const
+{
+    CString mapText;
+    int numItems = memoryMapList.GetItemCount();
+
+    for( int i = 0; i < numItems; ++i ) {
+        mapText += converter.ItemToString( memoryMapList.GetItem( i ) );
+    }
+
+    return mapText;
+}
+
+void CVmMapWindow::saveToClipboard( const CString& text ) const
+{
+    OpenClipboard( nullptr );
+    EmptyClipboard();
+
+    HGLOBAL clipboardData = GlobalAlloc( GMEM_MOVEABLE | GMEM_DDESHARE, text.length() * sizeof( TCHAR ) );
+    assert( clipboardData != nullptr );
+
+    CopyMemory( GlobalLock( clipboardData ), text.c_str(), text.length() * sizeof( TCHAR ) );
+    GlobalUnlock( clipboardData );
+
+    SetClipboardData( CF_UNICODETEXT, clipboardData );
+
+    CloseClipboard();
+    GlobalFree( clipboardData );
 }

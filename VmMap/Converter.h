@@ -15,6 +15,8 @@ public:
     CItem AllocationInfoToItem( const CAllocationInfo& allocationInfo );
     CItem ProcessInfoToItem( const CProcessInfo& processInfo );
 
+    CString ItemToString( const CItem& item );
+
 private:
     CStringStream stream;
 

@@ -92,9 +92,25 @@ void CListView::SetItem( const CItem& item, int index )
     }
 }
 
-CString CListView::GetItemText( int index, int subitemIndex )
+CItem CListView::GetItem( int index ) const
 {
-    TCHAR subitemText[subitemTextMaxSize + 1];
+    CItem item;
+
+    for( int i = 0; ; ++i ) {
+        CString subItem = GetItemText( index, i );
+        if( !subItem.empty() ) {
+            item.push_back( subItem );
+        } else {
+            break;
+        }
+    }
+
+    return item;
+}
+
+CString CListView::GetItemText( int index, int subitemIndex ) const
+{
+    TCHAR subitemText[subitemTextMaxSize + 1] = { 0 };
 
     ListView_GetItemText( listView, index, subitemIndex, subitemText, subitemTextMaxSize );
 

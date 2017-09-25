@@ -21,7 +21,8 @@ public:
     void AddItem( const CItem& item, int index = -1 );
     void SetItem( const CItem& item, int index );
 
-    CString GetItemText( int index, int subitemIndex );
+    CItem GetItem( int index ) const;
+    CString GetItemText( int index, int subitemIndex ) const;
 
     void DeleteItem( int index );
     void DeleteAllItems();

@@ -1,5 +1,6 @@
 #include <sstream>
 #include <iomanip>
+#include <iterator>
 
 #include "Converter.h"
 
@@ -56,6 +57,16 @@ CItem CConverter::ProcessInfoToItem( const CProcessInfo& processInfo )
     return { name, pid, workingSet, architecture };
 }
 
+CString CConverter::ItemToString( const CItem& item )
+{
+    std::copy( std::begin( item ), std::end( item ), std::ostream_iterator<CString, TCHAR>( stream, TEXT( "\t" ) ) );
+    CString str = stream.str();
+    stream.str( {} );
+
+    str.back() = TEXT( '\n' );
+    return str;
+}
+
 CString CConverter::memSizeToString( long long memSize ) 
 {
     auto defaultLocale = stream.getloc();
@@ -78,18 +89,23 @@ CString CConverter::memTypeToString( DWORD type ) const
         case MEM_FREE:
             memTypeString = TEXT( "Free" );
             break;
+
         case MEM_RESERVE:
             memTypeString = TEXT( "Reserved" );
             break;
+
         case MEM_IMAGE:
             memTypeString = TEXT( "Image" );
             break;
+
         case MEM_MAPPED:
             memTypeString = TEXT( "Mapped" );
             break;
+
         case MEM_PRIVATE:
             memTypeString = TEXT( "Private" );
             break;
+
         default:
             memTypeString = TEXT( "Unknown" );
     }
@@ -105,27 +121,35 @@ CString CConverter::memProtectionToString( DWORD protection ) const
         case PAGE_READONLY: 
             protectionString = TEXT( "-R--" ); 
             break;
+
         case PAGE_READWRITE: 
             protectionString = TEXT( "-RW-" ); 
             break;
+
         case PAGE_WRITECOPY:
             protectionString = TEXT( "-RWC" );
             break;
+
         case PAGE_EXECUTE: 
             protectionString = TEXT( "E---" );
             break;
+
         case PAGE_EXECUTE_READ: 
             protectionString = TEXT( "ER--" );
             break;
+
         case PAGE_EXECUTE_READWRITE:
             protectionString = TEXT( "ERW-" ); 
             break;
+
         case PAGE_EXECUTE_WRITECOPY:
             protectionString = TEXT( "ERWC" );
             break;
+
         case PAGE_NOACCESS:
             protectionString = TEXT( "----" ); 
             break;
+
         default:
             protectionString = TEXT( "" );
     }

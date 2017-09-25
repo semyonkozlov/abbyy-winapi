@@ -25,8 +25,15 @@ protected:
 
     void OnCmdRefresh();
     void OnCmdSelectProcess();
+
     void OnCmdExpandAll();
     void OnCmdCollapseAll();
+
+    void OnCmdCopyAddress() const;
+    void OnCmdCopyAll() const;
+
+    void OnCmdQuickHelp() const;
+    void OnCmdAbout() const;
 
 private:
     static const CString className;
@@ -45,8 +52,8 @@ private:
         MLC_Details
     };
 
-    CMemoryScanner memoryScanner;
-    CConverter converter;
+    mutable CMemoryScanner memoryScanner;
+    mutable CConverter converter;
 
     HWND mainWindow;
     HWND listWindow;
@@ -60,4 +67,7 @@ private:
 
     void expandItem( int itemIndex );
     void collapseItem( int itemIndex, int numItems );
+
+    CString getMemoryMapText() const;
+    void saveToClipboard( const CString& text ) const;
 };
