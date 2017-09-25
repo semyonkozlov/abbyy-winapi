@@ -111,6 +111,11 @@ void CListView::DeleteAllItems()
     ListView_DeleteAllItems( listView );
 }
 
+int CListView::GetSelectedItemIndex() const
+{
+    return ListView_GetNextItem( listView, -1, LVNI_SELECTED );
+}
+
 int CListView::GetItemCount() const
 {
     return ListView_GetItemCount( listView );

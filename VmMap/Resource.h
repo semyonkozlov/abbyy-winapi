@@ -5,10 +5,9 @@
 
 // File popup
 #define ID_SELECT_PROCESS 111
-#define ID_OPEN 112
-#define ID_SAVE 113
-#define ID_SAVE_AS 114
-#define ID_EXIT 115
+#define ID_SAVE 112
+#define ID_SAVE_AS 113
+#define ID_EXIT 114
 
 // Edit popup
 #define ID_COPY_ADDRESS 121

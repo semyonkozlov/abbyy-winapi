@@ -11,7 +11,6 @@ CSelectionDialog::CSelectionDialog() :
     toolhelp(),
     converter(),
     procsList(),
-    processId( -1 ),
     dialogWindow( nullptr ),
     listWindow( nullptr )
 {
@@ -30,8 +29,10 @@ INT_PTR CSelectionDialog::CreateDialogBox( HWND parent )
 void CSelectionDialog::OnInit( HWND handle )
 {
     dialogWindow = handle;
+    SendMessage( handle, DM_SETDEFID, ID_PUSHBUTTON_OK, 0 );
 
     listWindow = procsList.Create( dialogWindow );
+
     RECT rect;
     GetClientRect( dialogWindow, &rect );
 
@@ -64,8 +65,6 @@ void CSelectionDialog::OnNotify( LPARAM lParam )
 
         CString pidText = procsList.GetItemText( itemIndex, PLC_Pid );
         EndDialog( dialogWindow, std::stoi( pidText ) );
-    } else if( notificationMessage->idFrom == IDC_LISTVIEW && notificationMessage->code == NM_CLICK ) {
-        selectedItemIndex = reinterpret_cast<LPNMLISTVIEW>(lParam)->iItem;
     }
 }
 
@@ -89,9 +88,6 @@ INT_PTR CSelectionDialog::OnCommand( WPARAM wParam )
         case ID_PUSHBUTTON_REFRESH:
             OnCmdPushbuttonRefresh();
             return TRUE;
-
-        default:
-            MessageBox( dialogWindow, TEXT( "What?" ), nullptr, MB_OK );
     }
 
     return FALSE;
@@ -99,6 +95,8 @@ INT_PTR CSelectionDialog::OnCommand( WPARAM wParam )
 
 void CSelectionDialog::OnCmdPushbuttonOk()
 {
+    int selectedItemIndex = procsList.GetSelectedItemIndex();
+
     CString pidText = procsList.GetItemText( selectedItemIndex, PLC_Pid );
     EndDialog( dialogWindow, std::stoi( pidText ) );
 }
@@ -144,11 +142,6 @@ INT_PTR CSelectionDialog::dialogProc( HWND handle, UINT message, WPARAM wParam, 
         case WM_CLOSE:
             dialog->OnClose();
             return TRUE;
-
-        default:
-        {
-            //MessageBox( dialog->dialogWindow, TEXT( "What?" ), nullptr, MB_OK );
-        }
     }
 
     return FALSE;

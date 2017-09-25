@@ -26,6 +26,7 @@ public:
     void DeleteItem( int index );
     void DeleteAllItems();
 
+    int GetSelectedItemIndex() const;
     int GetItemCount() const;
 
 private:

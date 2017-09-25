@@ -18,7 +18,6 @@ struct CProcessInfo {
     CString ProcessName;
     int Pid;
     long long WorkingSetSize;
-
     bool Is64bit;
 };
 

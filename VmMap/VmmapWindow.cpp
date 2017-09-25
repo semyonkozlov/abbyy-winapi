@@ -19,7 +19,6 @@ CVmMapWindow::CVmMapWindow() :
     memoryScanner(),
     mainWindow( nullptr ),
     listWindow( nullptr ),
-    processId( -1 ),
     shouldExpandAll( false ),
     memoryMap()
 {
@@ -72,15 +71,16 @@ HWND CVmMapWindow::Create()
     return mainWindow;
 }
 
-void CVmMapWindow::Show( int cmdShow ) const
+void CVmMapWindow::Show( int cmdShow )
 {
+    OnCmdSelectProcess();
+
     ShowWindow( mainWindow, cmdShow );
     memoryMapList.Show( cmdShow );
 }
 
 void CVmMapWindow::OnDestroy()
 {
-    // TODO close handles
     memoryScanner.DetachFromProcess();
     PostQuitMessage( EXIT_SUCCESS );
 }
@@ -93,14 +93,14 @@ void CVmMapWindow::OnCmdRefresh()
 
 void CVmMapWindow::OnCmdSelectProcess()
 {
-    processId = selectProcDialog.CreateDialogBox( mainWindow );
-    if( processId == -1 ) {
+    int procId = selectProcDialog.CreateDialogBox( mainWindow );
+    if( procId == -1 ) {
         return;
     }
     memoryScanner.DetachFromProcess();
-    updateWindowCaption();
+    updateWindowCaption( procId );
 
-    memoryScanner.AttachToProcess( processId );
+    memoryScanner.AttachToProcess( procId );
 
     OnCmdRefresh();
 }
@@ -168,7 +168,7 @@ void CVmMapWindow::OnNotify( LPARAM lParam )
     auto notificationMessage = reinterpret_cast<LPNMHDR>( lParam );
     if( notificationMessage->idFrom == IDC_LISTVIEW && notificationMessage->code == NM_DBLCLK ) {
         int itemIndex = reinterpret_cast<LPNMLISTVIEW>( lParam )->iItem;
-        
+
         CString blocksText = memoryMapList.GetItemText( itemIndex, MLC_Blocks );
         if( blocksText.empty() ) {
             return;
@@ -177,7 +177,7 @@ void CVmMapWindow::OnNotify( LPARAM lParam )
 
         // region info item has leading whitespace
         bool isExpanded = (memoryMapList.GetItemText( itemIndex + 1, MLC_Address ).front() == TEXT( ' ' ));
-        
+
         if( isExpanded ) {
             collapseItem( itemIndex, numBlocks );
         } else {
@@ -197,7 +197,7 @@ LRESULT CVmMapWindow::windowProc( HWND handle, UINT message, WPARAM wParam, LPAR
     }
 
     vmmap = reinterpret_cast<CVmMapWindow*>( GetWindowLongPtr( handle, GWLP_USERDATA ) );
-    switch( message ) { 
+    switch( message ) {
         case WM_SIZE:
             vmmap->OnSize();
             break;
@@ -240,16 +240,16 @@ void CVmMapWindow::updateListWindow()
     UpdateWindow( listWindow );
 }
 
-void CVmMapWindow::updateWindowCaption()
+void CVmMapWindow::updateWindowCaption( int procId )
 {
-    HANDLE process = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId );
+    HANDLE process = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, procId );
     TCHAR processName[MAX_PATH + 1];
     GetModuleBaseName( process, nullptr, processName, MAX_PATH );
     CloseHandle( process );
 
-    CString caption = TEXT( "Virtual Memory Map : " );
+    CString caption = TEXT( "Virtual Memory Map - " );
     (caption += processName) += TEXT( ", PID = " );
-    caption += IntToString( processId ).c_str();
+    caption += IntToString( procId ).c_str();
 
     SetWindowText( mainWindow, caption.c_str() );
 }

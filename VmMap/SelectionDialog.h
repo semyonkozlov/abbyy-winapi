@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Windows.h>
+#include <CommCtrl.h>
 
 #include "ListView.h"
 #include "Toolhelp.h"
@@ -34,9 +35,6 @@ private:
         PLC_WorkingSet,
         PLT_Architecture
     };
-    int selectedItemIndex;
-
-    int processId;
 
     HWND dialogWindow;
     HWND listWindow;

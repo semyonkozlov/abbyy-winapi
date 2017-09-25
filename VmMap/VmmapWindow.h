@@ -15,7 +15,7 @@ public:
     static void RegisterClass();
 
     HWND Create();
-    void Show( int cmdShow ) const;
+    void Show( int cmdShow );
 
 protected:
     void OnSize();
@@ -51,13 +51,12 @@ private:
     HWND mainWindow;
     HWND listWindow;
 
-    int processId;
     bool shouldExpandAll;
 
     std::vector<CAllocationInfo> memoryMap;
 
     void updateListWindow();
-    void updateWindowCaption();
+    void updateWindowCaption( int procId );
 
     void expandItem( int itemIndex );
     void collapseItem( int itemIndex, int numItems );
