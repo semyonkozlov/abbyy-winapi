@@ -16,7 +16,6 @@ CMemoryScanner::CMemoryScanner() :
 bool CMemoryScanner::AttachToProcess( int procId )
 {
     process = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, procId );
-    assert( process != nullptr ); // TODO
 
     toolhelp.CreateSnapshot( procId );
 

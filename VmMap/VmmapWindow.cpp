@@ -100,7 +100,10 @@ void CVmMapWindow::OnCmdSelectProcess()
     memoryScanner.DetachFromProcess();
     updateWindowCaption( procId );
 
-    memoryScanner.AttachToProcess( procId );
+    bool isOk = memoryScanner.AttachToProcess( procId );
+    if( !isOk ) {
+        ShowLastError();
+    }
 
     OnCmdRefresh();
 }
@@ -196,7 +199,6 @@ void CVmMapWindow::OnCommand( WPARAM wParam )
         case ID_ABOUT:
             OnCmdAbout();
             break;
-
     }
 }
 

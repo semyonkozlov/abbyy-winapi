@@ -96,6 +96,10 @@ INT_PTR CSelectionDialog::OnCommand( WPARAM wParam )
 void CSelectionDialog::OnCmdPushbuttonOk()
 {
     int selectedItemIndex = procsList.GetSelectedItemIndex();
+    if( selectedItemIndex == -1 ) {
+        EndDialog( dialogWindow, -1 );
+        return;
+    }
 
     CString pidText = procsList.GetItemText( selectedItemIndex, PLC_Pid );
     EndDialog( dialogWindow, std::stoi( pidText ) );

@@ -32,3 +32,6 @@
 
 // ListView
 #define IDC_LISTVIEW 4
+
+// Accelearators
+#define IDR_ACCEL 5

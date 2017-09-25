@@ -3,6 +3,7 @@
 #include <Tchar.h>
 #include <Windows.h>
 
+#include "Resource.h"
 #include "VmMapWindow.h"
 
 int WINAPI _tWinMain( HINSTANCE instance, HINSTANCE prevInstance, LPTSTR cmdLine, int cmdShow )
@@ -14,13 +15,17 @@ int WINAPI _tWinMain( HINSTANCE instance, HINSTANCE prevInstance, LPTSTR cmdLine
 
     vmmap.Show( cmdShow );
 
+    HACCEL accelTable = LoadAccelerators( instance, MAKEINTRESOURCE( IDR_ACCEL ) );
+    assert( accelTable != nullptr );
+
     BOOL getMessageStatus = FALSE;
     MSG message;
     while( (getMessageStatus = GetMessage( &message, nullptr, 0, 0 )) != 0 ) {
         assert( getMessageStatus != -1 );
 
-        // TODO: accelerator support
-        if( !IsDialogMessage( vmmapWindow, &message ) ) {
+        if( !TranslateAccelerator( vmmapWindow, accelTable, &message ) && 
+            !IsDialogMessage( vmmapWindow, &message ) ) 
+        {
             TranslateMessage( &message );
             DispatchMessage( &message );
         }
